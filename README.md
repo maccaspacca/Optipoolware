@@ -1,0 +1,2 @@
+# optihash
+Bismuth Pool Implementation
