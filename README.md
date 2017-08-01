@@ -1,2 +1,2 @@
-# optihash
+# Optipoolware
 Bismuth Pool Implementation
