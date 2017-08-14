@@ -197,7 +197,7 @@ def diffget(s):
 	connections.send(s, "diffget", 10)
 	diff = (connections.receive(s, 10))
 	print(diff)
-	diff = int(diff[1])
+	diff = int(diff[0])
 	return diff
 
 def bin_convert(string):
