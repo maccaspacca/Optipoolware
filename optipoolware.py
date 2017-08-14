@@ -195,7 +195,9 @@ def execute_param(cursor, what, param):
 
 def diffget(s):
 	connections.send(s, "diffget", 10)
-	diff = float(connections.receive(s, 10))
+	diff = (connections.receive(s, 10))
+	print(diff)
+	diff = int(diff[1])
 	return diff
 
 def bin_convert(string):
