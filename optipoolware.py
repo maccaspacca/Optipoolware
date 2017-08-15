@@ -1,9 +1,7 @@
 import socketserver, connections, time, options, log, sqlite3, socks, hashlib, random, re, keys, base64, sys, os
-import multiprocessing
 from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA
 from Crypto import Random
-from multiprocessing import Process
 (port, genesis_conf, verify_conf, version_conf, thread_limit_conf, rebuild_db_conf, debug_conf, purge_conf, pause_conf, ledger_path_conf, hyperblocks_conf, warning_list_limit_conf, tor_conf, debug_level_conf, allowed, mining_ip_conf, sync_conf, mining_threads_conf, diff_recalc_conf, pool_conf, pool_address, ram_conf, pool_percentage_conf, node_ip_conf) = options.read()
 (key, private_key_readable, public_key_readable, public_key_hashed, address) = keys.read() #import keys
 app_log = log.log("pool.log",debug_level_conf)
@@ -235,16 +233,8 @@ if not os.path.exists('shares.db'):
 	s.close()
 	# create empty mempool
 
-def paydb():
-
-	if checkdb():
-		payout()
-	
-	while True:
-		time.sleep(3600)
-		print("Payout check....")
-		if checkdb():
-			payout()
+if checkdb():
+	payout()
 
 diff_percentage = pool_percentage_conf
 
@@ -451,11 +441,6 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 app_log.warning("Starting up...")
 
 if __name__ == "__main__":
-	multiprocessing.freeze_support()
-	background_thread = Process(target=paydb)
-	background_thread.daemon = True
-	background_thread.start()
-	
 	HOST, PORT = "0.0.0.0", 8525
 
 	# Create the server, binding to localhost on port 9999
