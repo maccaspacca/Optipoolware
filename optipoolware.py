@@ -294,7 +294,7 @@ def worker():
 			difficulty = 45
 			difficulty2 = 45
 
-		new_diff = float(difficulty2)
+		new_diff = float(difficulty)
 		new_diff = math.ceil(new_diff)
 		#(float(difficulty), float(difficulty2))		
 		new_hash = blockhash
