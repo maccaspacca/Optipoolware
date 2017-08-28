@@ -37,7 +37,7 @@ except Exception as e:
 bin_format_dict = dict((x, format(ord(x), '8b').replace(' ', '0')) for x in '0123456789abcdef')
 
 def percentage(percent, whole):
-    return int((percent * whole) / 100)
+	return int((percent * whole) / 100)
 	
 def checkdb():
 	shares = sqlite3.connect('shares.db')
@@ -504,7 +504,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 	app_log.warning("Starting up...")
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
-    pass
+	pass
 
 if __name__ == "__main__":
 
