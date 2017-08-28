@@ -5,17 +5,29 @@ Known issue: Optipoolware will not stop execution with normal ctr-c in windows -
 # Changes from version 0.1
 
 TCP server from pool now multithreaded
+
 Background worker task gets network difficulty and blockhash from ledger
+
 autopayout (untested due to lack of block finds)
+
 Miner address check (56 hex characters, alphanumeric)
+
 Static pool difficulty configured by pool.txt
+
 Network diff rounded up using math.ceil
+
 Mining worker name support
+
 Miner hashrate recorded for later web presentation
+
 Returned nonce submitted against actual blockhash mined
+
 Optihash is updated to match new poolware
+
 Pool fee support
+
 Minimum payout can be adjusted
+
 Pool port can be changed by passing arguement at startup
 
 # optipoolware.py version 0.2
@@ -43,7 +55,9 @@ Pool fee can be set as a percentage in pool.txt e.g. for 5% fee just enter 5 in 
 pool.txt
 
 mine_diff= pool share difficulty
+
 min_payout= minimum payout for autopayout function
+
 pool_fee= pool fee percentage
 
 # optihash.py
@@ -53,12 +67,17 @@ It has no dependency on node.py and relies only on connections.py and picklemagi
 miner.txt contains the information needed to mine against the pool
 
 port=8525 or port presented by the pool
+
 mining_ip= ip address of the pool
+
 mining_threads= number of mining threads to be used by the miner
-tor=0
+
 miner_address= miners bismuth address
+
 nonce_time= time in seconds you wish optihash to mine between getting new work from the pool
+
 max_diff= the maximum difficulty you wish you miner to work at
+
 miner_name= Base name of each worker, this name will be appended with the thread number to give a name for each worker
 
 # How it Works
