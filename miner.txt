@@ -3,5 +3,6 @@ mining_ip=127.0.0.1
 mining_threads=4
 tor=0
 miner_address=92563981cc1e70d160c176edf368ea4bbc1d8d5ba63aceee99ef6ebd
-nonce_time=20
+nonce_time=10
 max_diff=100
+miner_name=Test

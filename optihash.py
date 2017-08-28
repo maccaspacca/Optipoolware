@@ -1,13 +1,11 @@
-# optihash.py v 0.10 to be used with Python3.5
+# optihash.py v 0.20 to be used with Python3.5
 # Optimized CPU-miner for Optipoolware based pool mining only
 # Copyright Hclivess, Primedigger, Maccaspacca 2017
 # .
 
-import hashlib, time, socks, connections, sys, os, binascii
+import hashlib, time, socks, connections, sys, os
 from multiprocessing import Process, freeze_support
 from random import getrandbits
-from functools import lru_cache as cache
-
 
 # load config
 lines = [line.rstrip('\n') for line in open('miner.txt')]
@@ -26,6 +24,8 @@ for line in lines:
 		nonce_time = int(line.split('=')[1])
 	if "max_diff=" in line:
 		max_diff = int(line.split('=')[1])
+	if "miner_name=" in line:
+		mname = line.split('=')[1]
 
 # load config
 
@@ -73,14 +73,7 @@ def diffme(pool_address,nonce,db_block_hash):
 	except:
 		pass
 
-def getbits(t):
-
-	ret_bits = [('%0x' % getrandbits(32 * 4)) for i in range(t*10000)]
-
-	return ret_bits
-
-@cache(maxsize=None)
-def miner(q, pool_address, db_block_hash, diff, mining_condition, mining_condition_bin):
+def miner(q, pool_address, db_block_hash, diff, mining_condition, mining_condition_bin, netdiff):
 
 	tries = 0
 	my_hash_rate = 0
@@ -89,7 +82,6 @@ def miner(q, pool_address, db_block_hash, diff, mining_condition, mining_conditi
 	start_hash.update(pool_address.encode("utf-8"))
 	address = pool_address
 	count = 0
-	start_time = time.time()
 	timeout = time.time() + nonce_time
 	while time.time() < timeout:
 		try:
@@ -100,10 +92,10 @@ def miner(q, pool_address, db_block_hash, diff, mining_condition, mining_conditi
 			
 			else:
 			
-				#try_arr = []
-				try_arr = getbits(nonce_time)
-				
-				for i in range(nonce_time*10000):
+				try_arr = []
+				try_arr = [('%0x' % getrandbits(32 * 4)) for i in range(nonce_time*50000)]
+				t1 = time.time()
+				for i in range(nonce_time*50000):
 				
 					mining_hash_lib = start_hash.copy()
 					mining_hash_lib.update((try_arr[i] + db_block_hash).encode("utf-8"))
@@ -111,23 +103,31 @@ def miner(q, pool_address, db_block_hash, diff, mining_condition, mining_conditi
 
 					# we first check hex diff, then binary diff
 					if mining_condition in mining_hash:
-						block_timestamp = '%.2f' % time.time()
-						if mining_condition_bin in bin_convert(mining_hash):
+						if mining_condition_bin in bin_convert_orig(mining_hash):
 							# recheck
 							mining_hash_check = hashlib.sha224((address + try_arr[i] + db_block_hash).encode("utf-8")).hexdigest()
-							if mining_hash_check != mining_hash or mining_condition_bin not in bin_convert_orig(
-									mining_hash_check):
+							if mining_hash_check != mining_hash or mining_condition_bin not in bin_convert_orig(mining_hash_check):
 								print("FOUND solution, but hash doesn't match:", mining_hash_check, 'vs.', mining_hash)
 								break
 							else:
 								print("Thread {} solved work in {} cycles - YAY!".format(q, tries))
-
+							
+							try:
+								t2 = time.time()
+								h1 = int((i / (t2 - t1))/1000)
+							except Exception as e:
+								h1 = 1
+							
+							wname = "{}{}".format(mname, str(q))
+							print("{} running at {} kh/s".format(wname,str(h1)))
 							block_send = []
 							del block_send[:]  # empty
 							
 							xdiffx = diffme(str(address[:56]),str(try_arr[i]),db_block_hash)
-
-							block_send.append((block_timestamp, try_arr[i], xdiffx, diff, db_block_hash))
+							
+							block_timestamp = '%.2f' % time.time()
+							
+							block_send.append((block_timestamp, try_arr[i], db_block_hash, netdiff, xdiffx, h1, wname))
 							print("Sending solution: {}".format(block_send))
 
 							tries = 0
@@ -145,21 +145,23 @@ def miner(q, pool_address, db_block_hash, diff, mining_condition, mining_conditi
 								connections.send(s1, self_address, 10)
 								connections.send(s1, block_send, 10)
 								print("Miner: solution submitted to pool")
-								print("Miner: solution difficulty = {}".format(str(xdiffx)))
 								time.sleep(0.2)
+								s1.close()
 
 							except Exception as e:
 								print("Miner: Could not submit solution to pool")
 								pass	
 				count += 1
+				#print(count)
+				t2 = time.time()
+				h1 = int((i / (t2 - t1))/1000)
 
 		except Exception as e:
 			print(e)
 			time.sleep(0.1)
 			raise
-	stop_time = time.time()
-	time_diff = stop_time - start_time
-	my_hash_rate = '%.2f' % ((float(count) / float(time_diff))*(nonce_time*10))
+
+	my_hash_rate = str(h1)
 	print('Thread {} is finding solutions at difficulty {} for {} seconds. Running @ {} KHs'.format(str(q), diff, nonce_time, my_hash_rate))
 
 def runit():
@@ -170,6 +172,7 @@ def runit():
 	connected = 0
 	while True:
 		try:
+			
 			s = socks.socksocket()
 			if tor_conf == 1:
 				s.setproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", 9050)
@@ -179,6 +182,7 @@ def runit():
 			db_block_hash = (work_pack[-1][0])
 			diff = int((work_pack[-1][1]))
 			paddress = (work_pack[-1][2])
+			netdiff = int((work_pack[-1][3]))
 			s.close()
 			connected = 1
 			
@@ -189,7 +193,7 @@ def runit():
 			instances = range(int(mining_threads_conf))
 			#print(instances)
 			for q in instances:
-				p = Process(target=miner, args=(str(q + 1), paddress, db_block_hash, diff, mining_condition, mining_condition_bin))
+				p = Process(target=miner, args=(str(q + 1), paddress, db_block_hash, diff, mining_condition, mining_condition_bin, netdiff))
 				p.daemon = True
 				p.start()
 			print("{} miners started......".format(mining_threads_conf))

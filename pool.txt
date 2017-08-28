@@ -1,0 +1,3 @@
+mine_diff=63
+min_payout=0.25
+pool_fee=5
