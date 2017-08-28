@@ -60,6 +60,7 @@ def hello():
 		shares_sum = s.fetchone()[0]
 		if shares_sum == None:
 			shares_sum = 0
+			continue
 		output_shares.append(shares_sum)
 
 
@@ -80,7 +81,7 @@ def hello():
 		view.append("<td>{}</td>".format(shares_sum))
 		view.append("<td>{}</td>".format(mrate))
 		view.append("<td>{}</td>".format(mname))
-		view.append("<td>{}</td>".format(time.strftime("%Y/%m/%d,%H:%M:%S", time.gmtime(float(shares_timestamp)))))
+		view.append("<td>{}</td>".format(time.strftime("%d/%m/%y at %H:%M:%S", time.gmtime(float(shares_timestamp)))))
 		view.append("<tr>")
 
 	try:
@@ -155,7 +156,7 @@ def hello():
 	view.append("<th>Block height</th>")
 	view.append("<th>Time</th>")
 	view.append("<tr>")
-	for row in c.execute("SELECT * FROM transactions WHERE address = ? and openfield = ? LIMIT 20",(address,)+("pool",)):
+	for row in c.execute("SELECT * FROM transactions WHERE address = ? and openfield = ? ORDER BY timestamp DESC LIMIT 20",(address,)+("pool",)):
 		view.append("<td>{}</td>".format(row[3]))
 		view.append("<td>{}</td>".format(row[4]))
 		view.append("<td>{}</td>".format(row[0]))
