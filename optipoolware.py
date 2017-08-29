@@ -326,9 +326,8 @@ def worker():
 			difficulty = 45
 			difficulty2 = 45
 
-		new_diff = float(difficulty)
+		new_diff = float(difficulty2)
 		new_diff = math.ceil(new_diff)
-		#(float(difficulty), float(difficulty2))		
 		new_hash = blockhash
 
 		c.close()
@@ -411,8 +410,8 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 					app_log.warning("Claimed hash: {}".format(mine_hash))
 					app_log.warning("Claimed diff: {}".format(sdiffs))
 
-					diff = int(ndiff)
-					db_block_hash = mine_hash
+					diff = int(new_diff)
+					db_block_hash = new_hash
 					
 					mining_hash = bin_convert_orig(hashlib.sha224((address + nonce + db_block_hash).encode("utf-8")).hexdigest())
 					mining_condition = bin_convert_orig(db_block_hash)[0:diff]			
