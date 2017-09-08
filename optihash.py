@@ -1,4 +1,4 @@
-# optihash.py v 0.20 to be used with Python3.5
+# optihash.py v 0.21 to be used with Python3.5
 # Optimized CPU-miner for Optipoolware based pool mining only
 # Copyright Hclivess, Primedigger, Maccaspacca 2017
 # .
@@ -136,7 +136,7 @@ def miner(q, pool_address, db_block_hash, diff, mining_condition, mining_conditi
 
 							try:
 								s1 = socks.socksocket()
-								s1.settimeout(0.3)
+								#s1.settimeout(0.3)
 								if tor_conf == 1:
 									s1.setproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", 9050)
 								s1.connect((mining_ip_conf, int(port)))  # connect to pool
