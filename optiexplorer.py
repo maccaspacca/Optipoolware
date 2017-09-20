@@ -3,6 +3,23 @@ from bottle import route, run, static_file
 
 (key, private_key_readable, public_key_readable, public_key_hashed, address) = keys.read() #import keys
 
+# load config
+
+try:
+	
+	lines = [line.rstrip('\n') for line in open('pool.txt')]
+	for line in lines:
+		try:
+			if "m_timeout=" in line:
+				m_timeout = int(line.split('=')[1])
+		except Exception as e:
+			m_timeout = 5
+
+except Exception as e:
+	m_timeout = 5
+
+# load config
+
 @route('/static/<filename>')
 def server_static(filename):
     return static_file(filename, root='static/')
@@ -32,6 +49,7 @@ def hello():
 			addresses.append(shares_address)
 
 	total_hash = 0
+	worker_count = 0
 	output_shares = []	
 	output_timestamps = []
 	view = []
@@ -71,7 +89,7 @@ def hello():
 	view.append('<div id="header_content"></div>')
 	view.append('<section class="panel panel-default">')
 	view.append('<div class="panel-heading">')
-	view.append('<h4>Active Miners</h4>')
+	view.append('<h4>Miners Since Last Payout</h4>')
 	view.append('</div>')
 	view.append('<div class="table table-responsive">')
 	view.append('<table id="active_miners" class="table table-hover">')
@@ -79,7 +97,7 @@ def hello():
 	view.append('<tr>')
 	view.append('<th class="text-left">Address</th>')
 	view.append('<th class="text-center">Number of shares</th>')
-	view.append('<th class="text-center">Est. total hashrate</th>')
+	view.append('<th class="text-center">Current Hashrate</th>')
 	view.append('<th class="text-center">Last worker</th>')
 	view.append('<th class="text-center">Workers</th>')
 	view.append('</tr>')
@@ -101,27 +119,38 @@ def hello():
 		s.execute("SELECT * FROM shares WHERE address = ? ORDER BY timestamp DESC LIMIT 1", (x,))
 		shares_last = s.fetchone()
 		#mrate = shares_last[4]
-		mname = shares_last[5]
+		mname = shares_last[7] # last worker
+		
 		
 		s.execute("SELECT DISTINCT name FROM shares WHERE address = ?", (x,))
 		shares_names = s.fetchall()
-		wcount = len(shares_names)
 		
-		s.execute("SELECT avg(rate) FROM shares WHERE address = ?", (x,))
-		shares_hash = s.fetchone()[0]
-		if shares_hash == None:
-			shares_hash = 0
-			continue
-			
-		mrate = int(shares_hash) * int(wcount)
+		nrate = []
+		ncount = []
+		for n in shares_names:
+			s.execute("SELECT * FROM shares WHERE name = ? ORDER BY timestamp DESC LIMIT 1", (n[0],))
+			names_last = s.fetchone()
+			t1 = time.time()
+			t2 = float(names_last[2])
+			t3 = (t1 - t2)/60
+			if t3 < m_timeout:
+				nrate.append(int(names_last[4]))
+				ncount.append(int(names_last[6]))
+			else:
+				nrate.append(0)
+				ncount.append(0)
+	
+		mrate = sum(nrate) # hashrate of address
+		wcount = sum(ncount) # worker count
 		total_hash = total_hash + mrate
+		worker_count = worker_count + wcount
 		
 		color_cell = "white"
 
 		view.append("<tr bgcolor ={}>".format(color_cell))
 		view.append("<td>{}</td>".format(x))
 		view.append("<td class='text-center'>{}</td>".format(shares_sum))
-		view.append("<td class='text-center'>{} kh/s</td>".format(mrate))
+		view.append("<td class='text-center'>{} kh/s</td>".format(str(mrate)))
 		view.append("<td class='text-center'>{}</td>".format(mname))
 		view.append("<td class='text-center'>{}</td>".format(str(wcount)))
 		view.append("<tr>")
@@ -139,7 +168,7 @@ def hello():
 	view.append('<div class="container">')
 	view.append('<section class="panel panel-default clearfix">')
 	view.append('<div class="panel-heading">')
-	view.append('<h4>Mined blocks for this round</h4>')
+	view.append('<h4>Block and Pool Stats for this round</h4>')
 	view.append('</div>')
 
 	try:
@@ -180,6 +209,10 @@ def hello():
 	view.append("<th width='50%'>Est pool hashrate (mh/s)</th>")
 	view.append("<td class='text-left'>{}</td>".format('%.2f' % (total_hash/1000)))
 	view.append("<tr>")
+	
+	view.append("<th width='50%'>Worker Count</th>")
+	view.append("<td class='text-left'>{}</td>".format(str(worker_count)))
+	view.append("<tr>")
 
 	view.append("</table>")
 	view.append('</div>')
@@ -194,7 +227,7 @@ def hello():
 	view.append('<h4>Pending payouts</h4>')
 	view.append('</div>')
 	view.append('<div class="table table-responsive">')
-	view.append('<table id="active_miners" class="table table-hover">')
+	view.append('<table id="pending_payouts" class="table table-hover">')
 	view.append('<thead>')
 	view.append('<tr>')
 	view.append("<th>Address</th>")
@@ -229,7 +262,7 @@ def hello():
 	view.append('<h4>Previous payouts</h4>')
 	view.append('</div>')
 	view.append('<div class="table table-responsive">')
-	view.append('<table id="active_miners" class="table table-hover">')
+	view.append('<table id="previous_payouts" class="table table-hover">')
 	view.append('<thead>')
 	view.append('<tr>')
 	view.append('<th class="text-left">Address</th>')

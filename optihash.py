@@ -57,7 +57,7 @@ def diffme(pool_address,nonce,db_block_hash):
 	except:
 		pass
 
-def miner(q, pool_address, db_block_hash, diff, mining_condition, mining_condition_bin, netdiff, hq):
+def miner(q, pool_address, db_block_hash, diff, mining_condition, mining_condition_bin, netdiff, hq, thr, dh):
 
 	tries = 0
 	my_hash_rate = 0
@@ -108,7 +108,7 @@ def miner(q, pool_address, db_block_hash, diff, mining_condition, mining_conditi
 						xdiffx = diffme(str(address[:56]),str(nonce),db_block_hash)
 													
 						block_timestamp = '%.2f' % time.time()
-						block_send.append((block_timestamp, nonce, db_block_hash, netdiff, xdiffx, h1, wname))
+						block_send.append((block_timestamp, nonce, db_block_hash, netdiff, xdiffx, dh, mname, thr, str(q)))
 						print("Sending solution: {}".format(block_send))
 
 						tries = 0
@@ -167,10 +167,10 @@ def runit():
 			mining_condition = db_block_hash[0:diff_hex]
 	
 			instances = range(int(mining_threads_conf))
-			#thr = int(mining_threads_conf)
+			thr = int(mining_threads_conf)
 	
 			for q in instances:
-				p = Process(target=miner, args=(str(q + 1), paddress, db_block_hash, diff, mining_condition, mining_condition_bin, netdiff, hq))
+				p = Process(target=miner, args=(str(q + 1), paddress, db_block_hash, diff, mining_condition, mining_condition_bin, netdiff, hq, thr, dh))
 				p.daemon = True
 				p.start()
 			print("{} miners searching for solutions at difficulty {} and condition {}".format(mining_threads_conf,str(diff),str(mining_condition)))

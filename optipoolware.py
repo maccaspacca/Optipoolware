@@ -219,7 +219,7 @@ def payout(payout_threshold,myfee):
 		a = archive.cursor()
 		
 		for sh in pd:
-			a.execute("INSERT INTO shares VALUES (?,?,?,?,?,?)", (sh[0],sh[1],sh[2],sh[3],sh[4],sh[5]))
+			a.execute("INSERT INTO shares VALUES (?,?,?,?,?,?,?,?)", (sh[0],sh[1],sh[2],sh[3],sh[4],sh[5],sh[6],sh[7]))
 
 		archive.commit()
 		a.close()
@@ -400,7 +400,7 @@ if not os.path.exists('shares.db'):
 	shares = sqlite3.connect('shares.db')
 	shares.text_factory = str
 	s = shares.cursor()
-	execute(s, "CREATE TABLE IF NOT EXISTS shares (address, shares, timestamp, paid, rate, name)")
+	execute(s, "CREATE TABLE IF NOT EXISTS shares (address, shares, timestamp, paid, rate, name, workers, subname)")
 	execute(s, "CREATE TABLE IF NOT EXISTS nonces (nonce)") #for used hash storage
 	app_log.warning("Created shares file")
 	s.close()
@@ -410,7 +410,7 @@ if not os.path.exists('archive.db'):
 	archive = sqlite3.connect('archive.db')
 	archive.text_factory = str
 	a = archive.cursor()
-	execute(a, "CREATE TABLE IF NOT EXISTS shares (address, shares, timestamp, paid, rate, name)")
+	execute(a, "CREATE TABLE IF NOT EXISTS shares (address, shares, timestamp, paid, rate, name, workers, subname)")
 	app_log.warning("Created archive file")
 	a.close()
 	# create empty archive
@@ -473,8 +473,11 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 					mine_hash = ((block_nonce[-1][2])) # block hash claimed
 					ndiff = ((block_nonce[-1][3])) # network diff when mined
 					sdiffs = ((block_nonce[-1][4])) # actual diff mined
-					mrate = ((block_nonce[-1][5])) # hash rate in khs
-					wname = ((block_nonce[-1][6])) # worker name
+					mrate = ((block_nonce[-1][5])) # total hash rate in khs
+					bname = ((block_nonce[-1][6])) # base worker name
+					wnum = ((block_nonce[-1][7])) # workers
+					wstr = ((block_nonce[-1][8])) # worker number
+					wname = "{}{}".format(bname, wstr) # worker name
 
 					app_log.warning("Mined nonce details: {}".format(block_nonce))
 					app_log.warning("Claimed hash: {}".format(mine_hash))
@@ -532,6 +535,11 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 
 							block_send.append((str(block_timestamp), str(address[:56]), str(address[:56]), '%.8f' % float(0), str(signature_enc.decode("utf-8")), str(public_key_hashed), "0", str(nonce)))  # mining reward tx
 							app_log.warning("Block to send: {}".format(block_send))
+							
+							if not any(isinstance(el, list) for el in block_send):  # if it's not a list of lists (only the mining tx and no others)
+								new_list = []
+								new_list.append(block_send)
+								block_send = new_list  # make it a list of lists
 
 						global peer_dict
 						peer_dict = {}
@@ -591,7 +599,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 
 							timestamp = '%.2f' % time.time()
 
-							s.execute("INSERT INTO shares VALUES (?,?,?,?,?,?)", (str(miner_address), str(1), timestamp, "0", str(mrate), wname))
+							s.execute("INSERT INTO shares VALUES (?,?,?,?,?,?,?,?)", (str(miner_address), str(1), timestamp, "0", str(mrate), bname, str(wnum), wname))
 							shares.commit()
 
 						else:
