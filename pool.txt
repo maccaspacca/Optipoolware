@@ -1,3 +1,4 @@
-mine_diff=63
-min_payout=0.25
-pool_fee=5
+mine_diff=65
+min_payout=0
+pool_fee=0
+m_timeout=5

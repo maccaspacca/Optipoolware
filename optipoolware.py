@@ -17,7 +17,8 @@ node_ip_conf = config.node_ip_conf
 purge_conf = config.purge_conf
 pause_conf = config.pause_conf
 ledger_path_conf = config.ledger_path_conf
-hyperblocks_conf = config.hyperblocks_conf
+hyper_path_conf = config.hyper_path_conf
+hyper_recompress_conf = config.hyper_recompress_conf
 warning_list_limit_conf = config.warning_list_limit_conf
 tor_conf = config.tor_conf
 debug_level_conf = config.debug_level_conf
@@ -31,11 +32,10 @@ pool_conf = config.pool_conf
 ram_conf = config.ram_conf
 pool_address = config.pool_address_conf
 version = config.version_conf
+full_ledger = config.full_ledger_conf
 
 # load config
 
-
-#(port, genesis_conf, verify_conf, version_conf, thread_limit_conf, rebuild_db_conf, debug_conf, purge_conf, pause_conf, ledger_path_conf, hyperblocks_conf, warning_list_limit_conf, tor_conf, debug_level_conf, allowed, mining_ip_conf, sync_conf, mining_threads_conf, diff_recalc_conf, pool_conf, pool_address, ram_conf, pool_percentage_conf, node_ip_conf) = options.read()
 (key, private_key_readable, public_key_readable, public_key_hashed, address) = keys.read() #import keys
 app_log = log.log("pool.log",debug_level_conf)
 
@@ -128,7 +128,6 @@ def payout(payout_threshold,myfee):
 			shares_sum = 0
 
 		output_shares.append(shares_sum)
-	
 
 	print(output_shares)
 	# get shares for address
@@ -206,6 +205,32 @@ def payout(payout_threshold,myfee):
 
 	# calculate payouts
 	#payout
+	
+	# archive paid shares
+	s.execute("SELECT * FROM shares WHERE paid = ?",('1',))
+	pd = s.fetchall()
+	#print(pd)
+	
+	if pd == None:
+		pass
+	else:
+		archive = sqlite3.connect('archive.db')
+		archive.text_factory = str
+		a = archive.cursor()
+		
+		for sh in pd:
+			a.execute("INSERT INTO shares VALUES (?,?,?,?,?,?,?,?)", (sh[0],sh[1],sh[2],sh[3],sh[4],sh[5],sh[6],sh[7]))
+
+		archive.commit()
+		a.close()
+	# archive paid shares
+	
+	# clear nonces
+	s.execute("DELETE FROM nonces")
+	s.execute("DELETE FROM shares WHERE paid = ?",('1',))
+	shares.commit()
+	s.execute("VACUUM")
+	#clear nonces
 	s.close()
 
 	
@@ -272,6 +297,14 @@ def s_test(testString):
 				return True
 	else:
 		return False
+		
+def n_test(testString):
+
+	if testString.isalnum():
+		if (re.search('[abcdef]',testString)):
+			return True
+	else:
+		return False
 	
 def paydb():
 
@@ -282,10 +315,12 @@ def paydb():
 		
 def worker():
 
+	doclean = 0
 	while True:
 		time.sleep(10)
 		global new_diff
 		global new_hash
+		doclean +=1
 
 		conn = sqlite3.connect(ledger_path_conf,timeout=1)
 		conn.text_factory = str
@@ -293,6 +328,30 @@ def worker():
 		c.execute("SELECT * FROM transactions WHERE reward != 0 ORDER BY block_height DESC LIMIT 1;")
 		block_last = c.fetchall()[0]
 		blockhash = block_last[7]
+
+		# clean mempool
+		if doclean == 360:
+			app_log.warning("Begin mempool clean...")
+			mempool = sqlite3.connect("mempool.db")
+			mempool.text_factory = str
+			m = mempool.cursor()
+			m.execute("SELECT * FROM transactions ORDER BY timestamp;")
+			result = m.fetchall()  # select all txs from mempool
+			
+			for r in result:
+				ts = r[4]
+				c.execute("SELECT block_height FROM transactions WHERE signature = ?;",(ts,))
+				try:
+					nok = c.fetchall()[0]
+					m.execute("DELETE FROM transactions WHERE signature = ?;",(ts,))
+				except:
+					pass
+			mempool.commit()
+			m.execute("VACUUM")
+			mempool.close()
+			doclean = 0
+			app_log.warning("End mempool clean...")
+		# clean mempool
 
 		c.execute("SELECT * FROM transactions ORDER BY block_height DESC LIMIT 1")
 		result = c.fetchall()[0]
@@ -316,9 +375,11 @@ def worker():
 		difficulty = diff_block_previous + log  # increase/decrease diff by a little
 
 		time_now = time.time()
-		if time_now > timestamp_last + 300: #if 5 minutes have passed
-			difficulty2 = percentage(90,difficulty)
-
+		if time_now > timestamp_last + 300:  # if 5 minutes have passed
+			if block_height < 300000:
+				difficulty2 = percentage(90, difficulty)
+			else:
+				difficulty2 = percentage(95, difficulty)
 		else:
 			difficulty2 = difficulty
 
@@ -326,7 +387,7 @@ def worker():
 			difficulty = 45
 			difficulty2 = 45
 
-		new_diff = float(difficulty2)
+		new_diff = float(difficulty)
 		new_diff = math.ceil(new_diff)
 		new_hash = blockhash
 
@@ -335,15 +396,24 @@ def worker():
 		app_log.warning("Worker task...")
 		
 if not os.path.exists('shares.db'):
-	# create empty mempool
+	# create empty shares
 	shares = sqlite3.connect('shares.db')
 	shares.text_factory = str
 	s = shares.cursor()
-	execute(s, "CREATE TABLE IF NOT EXISTS shares (address, shares, timestamp, paid, rate, name)")
+	execute(s, "CREATE TABLE IF NOT EXISTS shares (address, shares, timestamp, paid, rate, name, workers, subname)")
 	execute(s, "CREATE TABLE IF NOT EXISTS nonces (nonce)") #for used hash storage
 	app_log.warning("Created shares file")
 	s.close()
-	# create empty mempool
+	# create empty shares
+if not os.path.exists('archive.db'):
+	# create empty archive
+	archive = sqlite3.connect('archive.db')
+	archive.text_factory = str
+	a = archive.cursor()
+	execute(a, "CREATE TABLE IF NOT EXISTS shares (address, shares, timestamp, paid, rate, name, workers, subname)")
+	app_log.warning("Created archive file")
+	a.close()
+	# create empty archive
 	
 if checkdb():
 	payout(min_payout,pool_fee)
@@ -403,15 +473,22 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 					mine_hash = ((block_nonce[-1][2])) # block hash claimed
 					ndiff = ((block_nonce[-1][3])) # network diff when mined
 					sdiffs = ((block_nonce[-1][4])) # actual diff mined
-					mrate = ((block_nonce[-1][5])) # hash rate in khs
-					wname = ((block_nonce[-1][6])) # worker name
+					mrate = ((block_nonce[-1][5])) # total hash rate in khs
+					bname = ((block_nonce[-1][6])) # base worker name
+					wnum = ((block_nonce[-1][7])) # workers
+					wstr = ((block_nonce[-1][8])) # worker number
+					wname = "{}{}".format(bname, wstr) # worker name
 
 					app_log.warning("Mined nonce details: {}".format(block_nonce))
 					app_log.warning("Claimed hash: {}".format(mine_hash))
 					app_log.warning("Claimed diff: {}".format(sdiffs))
-
-					diff = int(new_diff)
-					db_block_hash = new_hash
+					
+					if not n_test(nonce):
+						app_log.warning("Bad Nonce Format Detected - Closing Connection")
+						self.close
+					app_log.warning("Processing nonce.....")
+					diff = int(ndiff)
+					db_block_hash = mine_hash
 					
 					mining_hash = bin_convert_orig(hashlib.sha224((address + nonce + db_block_hash).encode("utf-8")).hexdigest())
 					mining_condition = bin_convert_orig(db_block_hash)[0:diff]			
@@ -458,6 +535,11 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 
 							block_send.append((str(block_timestamp), str(address[:56]), str(address[:56]), '%.8f' % float(0), str(signature_enc.decode("utf-8")), str(public_key_hashed), "0", str(nonce)))  # mining reward tx
 							app_log.warning("Block to send: {}".format(block_send))
+							
+							if not any(isinstance(el, list) for el in block_send):  # if it's not a list of lists (only the mining tx and no others)
+								new_list = []
+								new_list.append(block_send)
+								block_send = new_list  # make it a list of lists
 
 						global peer_dict
 						peer_dict = {}
@@ -517,18 +599,14 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 
 							timestamp = '%.2f' % time.time()
 
-							s.execute("INSERT INTO shares VALUES (?,?,?,?,?,?)", (str(miner_address), str(1), timestamp, "0", str(mrate), wname))
+							s.execute("INSERT INTO shares VALUES (?,?,?,?,?,?,?,?)", (str(miner_address), str(1), timestamp, "0", str(mrate), bname, str(wnum), wname))
 							shares.commit()
 
 						else:
 							app_log.warning("Difficulty requirement not satisfied for anything \n")
 
 					s.close()
-	
-				#elif data == "startup":  # sends the miner the pool address
-				
-					#connections.send(self.request, address, 10)
-					#print("Start package sent to {}".format(peer_ip))
+
 			self.request.close()
 		except Exception as e:
 			pass
