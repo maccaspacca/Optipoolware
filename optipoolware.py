@@ -84,6 +84,7 @@ def checkdb():
 		return True
 
 # payout processing
+
 def payout(payout_threshold,myfee):
 	
 	print("Minimum payout is {} Bismuth".format(str(payout_threshold)))
@@ -315,12 +316,10 @@ def paydb():
 		
 def worker():
 
-	doclean = 0
 	while True:
 		time.sleep(10)
 		global new_diff
 		global new_hash
-		doclean +=1
 
 		conn = sqlite3.connect(ledger_path_conf,timeout=1)
 		conn.text_factory = str
@@ -328,30 +327,6 @@ def worker():
 		c.execute("SELECT * FROM transactions WHERE reward != 0 ORDER BY block_height DESC LIMIT 1;")
 		block_last = c.fetchall()[0]
 		blockhash = block_last[7]
-
-		# clean mempool
-		if doclean == 360:
-			app_log.warning("Begin mempool clean...")
-			mempool = sqlite3.connect("mempool.db")
-			mempool.text_factory = str
-			m = mempool.cursor()
-			m.execute("SELECT * FROM transactions ORDER BY timestamp;")
-			result = m.fetchall()  # select all txs from mempool
-			
-			for r in result:
-				ts = r[4]
-				c.execute("SELECT block_height FROM transactions WHERE signature = ?;",(ts,))
-				try:
-					nok = c.fetchall()[0]
-					m.execute("DELETE FROM transactions WHERE signature = ?;",(ts,))
-				except:
-					pass
-			mempool.commit()
-			m.execute("VACUUM")
-			mempool.close()
-			doclean = 0
-			app_log.warning("End mempool clean...")
-		# clean mempool
 
 		c.execute("SELECT * FROM transactions ORDER BY block_height DESC LIMIT 1")
 		result = c.fetchall()[0]
@@ -387,11 +362,14 @@ def worker():
 			difficulty = 45
 			difficulty2 = 45
 
-		new_diff = float(difficulty)
+		new_diff = float(difficulty2)
 		new_diff = math.ceil(new_diff)
 		new_hash = blockhash
 
 		c.close()
+		
+		print("Difficulty = {}".format(str(new_diff)))
+		print("Blockhash = {}".format(str(new_hash)))
 		
 		app_log.warning("Worker task...")
 		

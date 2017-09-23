@@ -128,7 +128,7 @@ def hello():
 		nrate = []
 		ncount = []
 		for n in shares_names:
-			s.execute("SELECT * FROM shares WHERE name = ? ORDER BY timestamp DESC LIMIT 1", (n[0],))
+			s.execute("SELECT * FROM shares WHERE address = ? AND name = ? ORDER BY timestamp DESC LIMIT 1", (x,n[0]))
 			names_last = s.fetchone()
 			t1 = time.time()
 			t2 = float(names_last[2])
