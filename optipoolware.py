@@ -316,62 +316,70 @@ def paydb():
 		
 def worker():
 
+	global new_diff
+	global new_hash
+
 	while True:
+	
 		time.sleep(10)
-		global new_diff
-		global new_hash
-
-		conn = sqlite3.connect(ledger_path_conf,timeout=1)
-		conn.text_factory = str
-		c = conn.cursor()
-		c.execute("SELECT * FROM transactions WHERE reward != 0 ORDER BY block_height DESC LIMIT 1;")
-		block_last = c.fetchall()[0]
-		blockhash = block_last[7]
-
-		c.execute("SELECT * FROM transactions ORDER BY block_height DESC LIMIT 1")
-		result = c.fetchall()[0]
-		timestamp_last = float(result[1])
-		block_height = int(result[0])
-
-		c.execute("SELECT block_height FROM transactions WHERE CAST(timestamp AS INTEGER) > ? AND reward != 0",(timestamp_last - 86400,))  # 86400=24h
-		blocks_per_1440 = len(c.fetchall())
-
-		c.execute("SELECT difficulty FROM misc ORDER BY block_height DESC LIMIT 1")
+	
 		try:
-			diff_block_previous = float(c.fetchone()[0])
-		except:
-			diff_block_previous = 45
 
-		try:
-			log = math.log2(blocks_per_1440 / 1440)
-		except:
-			log = math.log2(0.5 / 1440)
+			conn = sqlite3.connect(ledger_path_conf)
+			conn.text_factory = str
+			c = conn.cursor()
+			c.execute("SELECT * FROM transactions WHERE reward != 0 ORDER BY block_height DESC LIMIT 1;")
+			block_last = c.fetchall()[0]
+			blockhash = block_last[7]
 
-		difficulty = diff_block_previous + log  # increase/decrease diff by a little
+			c.execute("SELECT * FROM transactions ORDER BY block_height DESC LIMIT 1")
+			result = c.fetchall()[0]
+			timestamp_last = float(result[1])
+			block_height = int(result[0])
 
-		time_now = time.time()
-		if time_now > timestamp_last + 300:  # if 5 minutes have passed
-			if block_height < 300000:
-				difficulty2 = percentage(90, difficulty)
+			c.execute("SELECT block_height FROM transactions WHERE CAST(timestamp AS INTEGER) > ? AND reward != 0",(timestamp_last - 86400,))  # 86400=24h
+			blocks_per_1440 = len(c.fetchall())
+
+			c.execute("SELECT difficulty FROM misc ORDER BY block_height DESC LIMIT 1")
+			try:
+				diff_block_previous = float(c.fetchone()[0])
+			except:
+				diff_block_previous = 45
+
+			try:
+				log = math.log2(blocks_per_1440 / 1440)
+			except:
+				log = math.log2(0.5 / 1440)
+
+			difficulty = diff_block_previous + log  # increase/decrease diff by a little
+
+			time_now = time.time()
+			if time_now > timestamp_last + 300:  # if 5 minutes have passed
+				if block_height < 300000:
+					difficulty2 = percentage(90, difficulty)
+				else:
+					difficulty2 = percentage(95, difficulty)
 			else:
-				difficulty2 = percentage(95, difficulty)
-		else:
-			difficulty2 = difficulty
+				difficulty2 = difficulty
 
-		if difficulty < 45 or difficulty2 < 45:
-			difficulty = 45
-			difficulty2 = 45
+			if difficulty < 45 or difficulty2 < 45:
+				difficulty = 45
+				difficulty2 = 45
 
-		new_diff = float(difficulty2)
-		new_diff = math.ceil(new_diff)
-		new_hash = blockhash
+			new_diff = float(difficulty2)
+			new_diff = math.ceil(new_diff)
+			new_hash = blockhash
 
-		c.close()
+			c.close()
+			
+			print("Difficulty = {}".format(str(new_diff)))
+			print("Blockhash = {}".format(str(new_hash)))
+			
+			app_log.warning("Worker task...")
 		
-		print("Difficulty = {}".format(str(new_diff)))
-		print("Blockhash = {}".format(str(new_hash)))
-		
-		app_log.warning("Worker task...")
+		except Exception as e:
+			app_log.warning(str(e))
+	
 		
 if not os.path.exists('shares.db'):
 	# create empty shares
