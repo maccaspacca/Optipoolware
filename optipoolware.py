@@ -318,10 +318,12 @@ def worker():
 
 	global new_diff
 	global new_hash
+	doclean = 0
 
 	while True:
 	
 		time.sleep(10)
+		doclean +=1
 	
 		try:
 
@@ -331,6 +333,30 @@ def worker():
 			c.execute("SELECT * FROM transactions WHERE reward != 0 ORDER BY block_height DESC LIMIT 1;")
 			block_last = c.fetchall()[0]
 			blockhash = block_last[7]
+			
+			# clean mempool
+			if doclean == 360:
+				app_log.warning("Begin mempool clean...")
+				mempool = sqlite3.connect("mempool.db")
+				mempool.text_factory = str
+				m = mempool.cursor()
+				m.execute("SELECT * FROM transactions ORDER BY timestamp;")
+				result = m.fetchall()  # select all txs from mempool
+				
+				for r in result:
+					ts = r[4]
+					c.execute("SELECT block_height FROM transactions WHERE signature = ?;",(ts,))
+					try:
+						nok = c.fetchall()[0]
+						m.execute("DELETE FROM transactions WHERE signature = ?;",(ts,))
+					except:
+						pass
+				mempool.commit()
+				m.execute("VACUUM")
+				mempool.close()
+				doclean = 0
+				app_log.warning("End mempool clean...")
+			# clean mempool
 
 			c.execute("SELECT * FROM transactions ORDER BY block_height DESC LIMIT 1")
 			result = c.fetchall()[0]
@@ -454,7 +480,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 					app_log.warning("Received a solution from miner {} ({})".format(peer_ip,miner_address))
 
 					block_nonce = connections.receive(self.request, 10)
-					block_timestamp = (block_nonce[-1][0])
+					#block_timestamp = (block_nonce[-1][0])
 					nonce = (block_nonce[-1][1])
 					mine_hash = ((block_nonce[-1][2])) # block hash claimed
 					ndiff = ((block_nonce[-1][3])) # network diff when mined
@@ -464,6 +490,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 					wnum = ((block_nonce[-1][7])) # workers
 					wstr = ((block_nonce[-1][8])) # worker number
 					wname = "{}{}".format(bname, wstr) # worker name
+					block_timestamp = '%.2f' % (time.time() - 10) # take 10 seconds for latency from miner to pool
 
 					app_log.warning("Mined nonce details: {}".format(block_nonce))
 					app_log.warning("Claimed hash: {}".format(mine_hash))
