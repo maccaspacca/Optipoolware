@@ -208,9 +208,9 @@ def payout(payout_threshold,myfee):
 	#payout
 	
 	# archive paid shares
-	s.execute("SELECT * FROM shares WHERE paid = ?",('1',))
+	s.execute("SELECT * FROM shares WHERE paid = 1")
 	pd = s.fetchall()
-	#print(pd)
+	print(pd)
 	
 	if pd == None:
 		pass

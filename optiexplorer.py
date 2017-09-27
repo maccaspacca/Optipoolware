@@ -259,10 +259,10 @@ def hello():
 	view.append('<div id="header_content"></div>')
 	view.append('<section class="panel panel-default">')
 	view.append('<div class="panel-heading">')
-	view.append('<h4>Previous payouts</h4>')
+	view.append('<h4>Recent payouts</h4>')
 	view.append('</div>')
 	view.append('<div class="table table-responsive">')
-	view.append('<table id="previous_payouts" class="table table-hover">')
+	view.append('<table id="recent_payouts" class="table table-hover">')
 	view.append('<thead>')
 	view.append('<tr>')
 	view.append('<th class="text-left">Address</th>')
@@ -272,11 +272,7 @@ def hello():
 	view.append('</tr>')
 	view.append('</thead>')
 
-	o.execute("SELECT DISTINCT address FROM shares")
-	add_num = o.fetchall()
-	acount = str(len(add_num))
-	
-	for row in c.execute("SELECT * FROM transactions WHERE address = ? and openfield = ? ORDER BY timestamp DESC LIMIT ?",(address,)+("pool",)+(acount,)):
+	for row in c.execute("SELECT * FROM transactions WHERE address = ? and openfield = ? ORDER BY timestamp DESC LIMIT 20",(address,)+("pool",)):
 		view.append("<td>{}</td>".format(row[3]))
 		view.append("<td class='text-right'>{}</td>".format(row[4]))
 		view.append("<td class='text-right'>{}</td>".format(row[0]))
