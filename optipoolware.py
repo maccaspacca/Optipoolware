@@ -86,7 +86,7 @@ def checkdb():
 # payout processing
 
 def payout(payout_threshold,myfee):
-	
+
 	print("Minimum payout is {} Bismuth".format(str(payout_threshold)))
 	print("Current pool fee is {} Percent".format(str(myfee)))
 	
@@ -165,9 +165,9 @@ def payout(payout_threshold,myfee):
 		except:
 			claim = 0
 		print(claim)
-
-
+	
 		if claim >= payout_threshold:
+			
 			payout_passed = 1
 			openfield = "pool"
 			keep = 0
@@ -210,7 +210,6 @@ def payout(payout_threshold,myfee):
 	# archive paid shares
 	s.execute("SELECT * FROM shares WHERE paid = 1")
 	pd = s.fetchall()
-	print(pd)
 	
 	if pd == None:
 		pass
@@ -228,7 +227,7 @@ def payout(payout_threshold,myfee):
 	
 	# clear nonces
 	s.execute("DELETE FROM nonces")
-	s.execute("DELETE FROM shares WHERE paid = ?",('1',))
+	s.execute("DELETE FROM shares WHERE paid = 1")
 	shares.commit()
 	s.execute("VACUUM")
 	#clear nonces
@@ -303,7 +302,8 @@ def n_test(testString):
 
 	if testString.isalnum():
 		if (re.search('[abcdef]',testString)):
-			return True
+			if len(testString) < 129:
+				return True
 	else:
 		return False
 	
@@ -311,13 +311,22 @@ def paydb():
 
 	while True:
 		time.sleep(3601)
-		payout(min_payout,pool_fee)
-		app_log.warning("Payout running...")
+		#time.sleep(60) # test
+		v = float('%.2f' % time.time())
+		v1 = new_time
+		v2 = v - v1
+
+		if v2 < 300:
+			payout(min_payout,pool_fee)
+			app_log.warning("Payout running...")
+		else:
+			app_log.warning("Node over 5 mins out...payout delayed")			
 		
 def worker():
 
 	global new_diff
 	global new_hash
+	global new_time
 	doclean = 0
 
 	while True:
@@ -333,6 +342,8 @@ def worker():
 			c.execute("SELECT * FROM transactions WHERE reward != 0 ORDER BY block_height DESC LIMIT 1;")
 			block_last = c.fetchall()[0]
 			blockhash = block_last[7]
+			blocktime = float(block_last[1])
+			new_time = blocktime
 			
 			# clean mempool
 			if doclean == 360:
