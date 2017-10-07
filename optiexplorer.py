@@ -56,6 +56,7 @@ def hello():
 
 	view.append('<head class="navbar navbar-inverse navbar-fixed-top" role="banner">\n')
 	view.append(' <meta charset="utf-8">')
+	view.append(' <meta http-equiv="refresh" content="120">')
 	view.append('   <meta http-equiv="X-UA-Compatible" content="IE=edge">')
 	view.append('   <meta name="viewport" content="width=device-width, initial-scale=1.0">')
 	view.append('  <link rel="shortcut icon" href="favicon.ico">')
@@ -85,11 +86,11 @@ def hello():
 
 	view.append('<div class="container">')
 	view.append('<div id="node_alerts" class="alert alert-danger hidden"></div>')
-	view.append('<div class="alert alert-info hidden">2013-12-13: This is a message to miners on my node telling them something really cool.</div>')
+	view.append('<div class="alert alert-info hidden">2017-10-07: This is a message to miners on my node telling them something really cool.</div>')
 	view.append('<div id="header_content"></div>')
 	view.append('<section class="panel panel-default">')
 	view.append('<div class="panel-heading">')
-	view.append('<h4>Miners Since Last Payout</h4>')
+	view.append('<h4>Recent Miners</h4>')
 	view.append('</div>')
 	view.append('<div class="table table-responsive">')
 	view.append('<table id="active_miners" class="table table-hover">')
@@ -145,16 +146,17 @@ def hello():
 		total_hash = total_hash + mrate
 		worker_count = worker_count + wcount
 		
-		color_cell = "white"
+		if t3 < 30:
+			color_cell = "white"
 
-		view.append("<tr bgcolor ={}>".format(color_cell))
-		view.append("<td>{}</td>".format(x))
-		view.append("<td class='text-center'>{}</td>".format(shares_sum))
-		view.append("<td class='text-center'>{} kh/s</td>".format(str(mrate)))
-		view.append("<td class='text-center'>{}</td>".format(mname))
-		view.append("<td class='text-center'>{}</td>".format(str(wcount)))
-		view.append("<tr>")
-
+			view.append("<tr bgcolor ={}>".format(color_cell))
+			view.append("<td>{}</td>".format(x))
+			view.append("<td class='text-center'>{}</td>".format(shares_sum))
+			view.append("<td class='text-center'>{} kh/s</td>".format(str(mrate)))
+			view.append("<td class='text-center'>{}</td>".format(mname))
+			view.append("<td class='text-center'>{}</td>".format(str(wcount)))
+			view.append("<tr>")
+		
 	try:
 		shares_total = sum(output_shares)
 	except:
@@ -193,7 +195,7 @@ def hello():
 
 	reward_total = sum(reward_list)
 
-	view.append("<th width='50%'>Reward per share</th>")
+	view.append("<th width='50%'>Reward per share (before fees)</th>")
 	try:
 		reward_per_share = reward_total/shares_total
 	except:
@@ -221,36 +223,37 @@ def hello():
 	
 	
 	# payout view
-	view.append('<div class="container">')
-	view.append('<section class="panel panel-default clearfix">')
-	view.append('<div class="panel-heading">')
-	view.append('<h4>Pending payouts</h4>')
-	view.append('</div>')
-	view.append('<div class="table table-responsive">')
-	view.append('<table id="pending_payouts" class="table table-hover">')
-	view.append('<thead>')
-	view.append('<tr>')
-	view.append("<th>Address</th>")
-	view.append("<th>Bismuth reward</th>")
-	view.append('</tr>')
-	view.append('</thead>')
-	view.append("<tr>")
-
-	for x, y in zip(addresses, output_shares):
-
-		try:
-			claim = y*reward_per_share
-		except:
-			claim = 0
-
-		view.append("<td>{}</td>".format(x))
-		view.append("<td>{}</td>".format('%.8f' %(claim)))
+	if reward_total > 0:
+		view.append('<div class="container">')
+		view.append('<section class="panel panel-default clearfix">')
+		view.append('<div class="panel-heading">')
+		view.append('<h4>Pending payouts (before fees)</h4>')
+		view.append('</div>')
+		view.append('<div class="table table-responsive">')
+		view.append('<table id="pending_payouts" class="table table-hover">')
+		view.append('<thead>')
+		view.append('<tr>')
+		view.append("<th>Address</th>")
+		view.append("<th>Bismuth reward</th>")
+		view.append('</tr>')
+		view.append('</thead>')
 		view.append("<tr>")
-	# payout view
-	view.append("</table>")
-	view.append('</div>')
-	view.append('</div>')
-	view.append('</section>')
+
+		for x, y in zip(addresses, output_shares):
+
+			try:
+				claim = y*reward_per_share
+			except:
+				claim = 0
+
+			view.append("<td>{}</td>".format(x))
+			view.append("<td>{}</td>".format('%.8f' %(claim)))
+			view.append("<tr>")
+		# payout view
+		view.append("</table>")
+		view.append('</div>')
+		view.append('</div>')
+		view.append('</section>')
 	
 	
 	view.append('<div class="container">')
@@ -272,7 +275,7 @@ def hello():
 	view.append('</tr>')
 	view.append('</thead>')
 
-	for row in c.execute("SELECT * FROM transactions WHERE address = ? and openfield = ? ORDER BY timestamp DESC LIMIT 20",(address,)+("pool",)):
+	for row in c.execute("SELECT * FROM transactions WHERE address = ? and openfield = ? ORDER BY timestamp DESC LIMIT 40",(address,)+("pool",)):
 		view.append("<td>{}</td>".format(row[3]))
 		view.append("<td class='text-right'>{}</td>".format(row[4]))
 		view.append("<td class='text-right'>{}</td>".format(row[0]))

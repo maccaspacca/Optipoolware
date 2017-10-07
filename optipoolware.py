@@ -33,11 +33,16 @@ ram_conf = config.ram_conf
 pool_address = config.pool_address_conf
 version = config.version_conf
 full_ledger = config.full_ledger_conf
+reveal_address=config.reveal_address
+accept_peers=config.accept_peers
+
+# print(version)
 
 # load config
 
 (key, private_key_readable, public_key_readable, public_key_hashed, address) = keys.read() #import keys
 app_log = log.log("pool.log",debug_level_conf)
+print("Pool Address: {}".format(address))
 
 # load config
 try:
@@ -59,11 +64,29 @@ try:
 				pool_fee = float(line.split('=')[1])
 		except Exception as e:
 			pool_fee = 0
+		try:
+			if "alt_fee=" in line:
+				alt_fee = float(line.split('=')[1])
+		except Exception as e:
+			alt_fee = 0
+		try:
+			if "worker_time=" in line:
+				w_time = int(line.split('=')[1])
+		except Exception as e:
+			w_time = 10
+		try:
+			if "alt_add=" in line:
+				alt_add = str(line.split('=')[1])
+		except Exception as e:
+			alt_add = "92563981cc1e70d160c176edf368ea4bbc1d8d5ba63aceee99ef6ebd"
 
 except Exception as e:
 	min_payout = 1
 	mdiff = 65
 	pool_fee = 0
+	alt_fee = 0
+	w_time = 10
+	alt_add = "92563981cc1e70d160c176edf368ea4bbc1d8d5ba63aceee99ef6ebd"
 # load config
 
 bin_format_dict = dict((x, format(ord(x), '8b').replace(' ', '0')) for x in '0123456789abcdef')
@@ -85,7 +108,7 @@ def checkdb():
 
 # payout processing
 
-def payout(payout_threshold,myfee):
+def payout(payout_threshold,myfee,othfee):
 
 	print("Minimum payout is {} Bismuth".format(str(payout_threshold)))
 	print("Current pool fee is {} Percent".format(str(myfee)))
@@ -97,108 +120,122 @@ def payout(payout_threshold,myfee):
 	conn = sqlite3.connect(ledger_path_conf)
 	conn.text_factory = str
 	c = conn.cursor()
-
-	#get unique addresses
-	addresses = []
-	for row in s.execute("SELECT * FROM shares"):
-		shares_address = row[0]
-		shares_value = row[1]
-		shares_timestamp = row[2]
-
-		if shares_address not in addresses:
-			addresses.append(shares_address)
-	print (addresses)
-	#get unique addresses
-
-	# get shares for address
-	output_shares = []
-	output_timestamps = []
 	
-
-	for x in addresses:
-		# get mined block threshold
-		s.execute("SELECT timestamp FROM shares WHERE address = ? ORDER BY timestamp ASC LIMIT 1", (x,))
-		shares_timestamp = s.fetchone()[0]
-		output_timestamps.append(float(shares_timestamp))
-		# get mined block threshold
-
-		s.execute("SELECT sum(shares) FROM shares WHERE address = ? AND paid != 1", (x,))
-		shares_sum = s.fetchone()[0]
-
-		if shares_sum == None:
-			shares_sum = 0
-
-		output_shares.append(shares_sum)
-
-	print(output_shares)
-	# get shares for address
-
+	#get sum of all shares not paid
+	s.execute("SELECT sum(shares) FROM shares WHERE paid != 1")
+	shares_total = s.fetchone()[0]
+	#get sum of all shares not paid
+	
+	#get block threshold
 	try:
-		block_threshold = min(output_timestamps)
+		s.execute("SELECT min(timestamp) FROM shares WHERE paid != 1")
+		block_threshold = float(s.fetchone()[0])
 	except:
 		raise
 		block_threshold = time.time()
-	print(block_threshold)
-
+	#get block threshold
+	
 	#get eligible blocks
 	reward_list = []
 	for row in c.execute("SELECT * FROM transactions WHERE address = ? AND CAST(timestamp AS INTEGER) >= ? AND reward != 0", (address,) + (block_threshold,)):
 		reward_list.append(float(row[9]))
 
-	reward_total = sum(reward_list)
+	super_total = sum(reward_list)
 	#get eligible blocks
-
-	shares_total = sum(output_shares) * ((100 - myfee)/100)
-
-	try:
-		reward_per_share = reward_total / shares_total
-	except:
-		reward_per_share = 0
-
-	# calculate payouts
-	#payout_threshold = 1
-	payout_passed = 0
-	for recipient, y in zip(addresses, output_shares):
-		print(recipient)
-		try:
-			claim = float('%.8f' % (y * reward_per_share))
-		except:
-			claim = 0
-		print(claim)
 	
-		if claim >= payout_threshold:
-			
-			payout_passed = 1
-			openfield = "pool"
-			keep = 0
-			fee = float('%.8f' % float(0.01 + (float(claim) * 0.001) + (float(len(openfield)) / 100000) + (float(keep) / 10)))  # 0.1% + 0.01 dust
-			#make payout
+	# so now we have sum of shares, total reward, block threshold
+	
+	# reduce total rewards by total fees percentage
+	reward_total = "%.8f" % (((100-(myfee+othfee))*super_total)/100)
+	reward_total = float(reward_total)
+	
+	# calculate alt address fee
+	
+	ft = super_total - reward_total
+	try:
+		at = "%.8f" % (ft * (othfee/(myfee+othfee)))
+	except:
+		at = 0
+		
+	# calculate reward per share
+	reward_per_share = reward_total / shares_total
+	
+	# calculate shares threshold for payment
+	
+	shares_threshold = math.floor(payout_threshold/reward_per_share)
+	
+	#get unique addresses
+	addresses = []
+	for row in s.execute("SELECT * FROM shares"):
+		shares_address = row[0]
 
-			timestamp = '%.2f' % time.time()
-			transaction = (str(timestamp), str(address), str(recipient), '%.8f' % float(claim - fee), str(keep), str(openfield))  # this is signed
-			# print transaction
+		if shares_address not in addresses:
+			addresses.append(shares_address)
+	print (addresses)
+	#get unique addresses
+	
+	# prepare payout address list with number of shares and new total shares
+	payadd = []
+	new_sum = 0
+	for x in addresses:
+		s.execute("SELECT sum(shares) FROM shares WHERE address = ? AND paid != 1", (x,))
+		shares_sum = s.fetchone()[0]
 
-			h = SHA.new(str(transaction).encode("utf-8"))
-			signer = PKCS1_v1_5.new(key)
-			signature = signer.sign(h)
-			signature_enc = base64.b64encode(signature)
-			print("Encoded Signature: {}".format(signature_enc.decode("utf-8")))
+		if shares_sum == None:
+			shares_sum = 0
+		if shares_sum > shares_threshold:
+			payadd.append([x,shares_sum])
+			new_sum = new_sum + shares_sum
+	#prepare payout address list with number of shares and new total shares
 
-			verifier = PKCS1_v1_5.new(key)
-			if verifier.verify(h, signature) == True:
-				print("The signature is valid, proceeding to save transaction to mempool")
+	# recalculate reward per share now we have removed those below payout threshold
+	reward_per_share = reward_total / new_sum
+	
+	paylist = []
+	for p in payadd:
+		payme =  "%.8f" % (p[1] * reward_per_share)
+		paylist.append([p[0],payme])
 
-				mempool = sqlite3.connect('mempool.db')
-				mempool.text_factory = str
-				m = mempool.cursor()
+	if othfee > 0:
+		paylist.append([alt_add,at])
+	
+	payout_passed = 0
+	for r in paylist:
+		print(r)
+		recipient = r[0]
+		claim = float(r[1])
+				
+		payout_passed = 1
+		openfield = "pool"
+		keep = 0
+		fee = float('%.8f' % float(0.01 + (float(len(openfield)) / 100000) + (keep)))  # 0.01 + openfield fee + keep fee
+		#make payout
 
-				m.execute("INSERT INTO transactions VALUES (?,?,?,?,?,?,?,?)", (str(timestamp), str(address), str(recipient), '%.8f' % float(claim - fee), str(signature_enc.decode("utf-8")), str(public_key_hashed), str(keep), str(openfield)))
-				mempool.commit()  # Save (commit) the changes
-				mempool.close()
-				print("Mempool updated with a received transaction")
+		timestamp = '%.2f' % time.time()
+		transaction = (str(timestamp), str(address), str(recipient), '%.8f' % float(claim - fee), str(keep), str(openfield))  # this is signed
+		# print transaction
 
-			s.execute("UPDATE shares SET paid = 1 WHERE address = ?",(recipient,))
-			shares.commit()
+		h = SHA.new(str(transaction).encode("utf-8"))
+		signer = PKCS1_v1_5.new(key)
+		signature = signer.sign(h)
+		signature_enc = base64.b64encode(signature)
+		print("Encoded Signature: {}".format(signature_enc.decode("utf-8")))
+
+		verifier = PKCS1_v1_5.new(key)
+		if verifier.verify(h, signature) == True:
+			print("The signature is valid, proceeding to save transaction to mempool")
+
+			mempool = sqlite3.connect('mempool.db')
+			mempool.text_factory = str
+			m = mempool.cursor()
+
+			m.execute("INSERT INTO transactions VALUES (?,?,?,?,?,?,?,?)", (str(timestamp), str(address), str(recipient), '%.8f' % float(claim - fee), str(signature_enc.decode("utf-8")), str(public_key_hashed), str(keep), str(openfield)))
+			mempool.commit()  # Save (commit) the changes
+			mempool.close()
+			print("Mempool updated with a received transaction")
+
+		s.execute("UPDATE shares SET paid = 1 WHERE address = ?",(recipient,))
+		shares.commit()
 
 	if payout_passed == 1:
 		s.execute("UPDATE shares SET timestamp = ?", (time.time(),))
@@ -317,12 +354,12 @@ def paydb():
 		v2 = v - v1
 
 		if v2 < 300:
-			payout(min_payout,pool_fee)
+			payout(min_payout,pool_fee,alt_fee)
 			app_log.warning("Payout running...")
 		else:
 			app_log.warning("Node over 5 mins out...payout delayed")			
 		
-def worker():
+def worker(s_time):
 
 	global new_diff
 	global new_hash
@@ -331,7 +368,7 @@ def worker():
 
 	while True:
 	
-		time.sleep(10)
+		time.sleep(s_time)
 		doclean +=1
 	
 		try:
@@ -346,7 +383,7 @@ def worker():
 			new_time = blocktime
 			
 			# clean mempool
-			if doclean == 360:
+			if doclean == (3600/s_time):
 				app_log.warning("Begin mempool clean...")
 				mempool = sqlite3.connect("mempool.db")
 				mempool.text_factory = str
@@ -378,30 +415,54 @@ def worker():
 			blocks_per_1440 = len(c.fetchall())
 
 			c.execute("SELECT difficulty FROM misc ORDER BY block_height DESC LIMIT 1")
-			try:
-				diff_block_previous = float(c.fetchone()[0])
-			except:
-				diff_block_previous = 45
+			diff_block_previous = float(c.fetchone()[0])
 
 			try:
 				log = math.log2(blocks_per_1440 / 1440)
 			except:
 				log = math.log2(0.5 / 1440)
+				app_log.info("Difficulty exception triggered! This should not happen!")
 
-			difficulty = diff_block_previous + log  # increase/decrease diff by a little
+			#app_log.warning("Difficulty retargeting: {}".format(log))
+
+			difficulty = float('%.13f' % (diff_block_previous + log))  # increase/decrease diff by a little
 
 			time_now = time.time()
-			if time_now > timestamp_last + 300:  # if 5 minutes have passed
-				if block_height < 300000:
-					difficulty2 = percentage(90, difficulty)
-				else:
-					difficulty2 = percentage(95, difficulty)
-			else:
-				difficulty2 = difficulty
 
-			if difficulty < 45 or difficulty2 < 45:
-				difficulty = 45
-				difficulty2 = 45
+
+			if "testnet" in version or int(block_height) >= 340000:
+				if time_now > timestamp_last + 120:  # if 2 minutes passed
+					execute(c, ("SELECT difficulty FROM misc ORDER BY block_height DESC LIMIT 5"))
+					diff_5 = c.fetchall()[0]
+					diff_lowest_5 = float(min(diff_5))
+
+					if diff_lowest_5 < difficulty:
+						candidate = diff_lowest_5 #if lowest of last 5 is lower than calculated diff
+					else:
+						candidate = difficulty
+
+					difficulty2 = float('%.13f' % percentage(99, candidate)) #candidate -1%
+				else:
+					difficulty2 = difficulty
+
+				if difficulty < 70:
+					difficulty = 70
+
+				if difficulty2 < 70:
+					difficulty2 = 70
+
+			else:
+				if time_now > timestamp_last + 300: #if 5 minutes have passed
+					difficulty2 = float('%.13f' % percentage(95, difficulty))
+
+				else:
+					difficulty2 = difficulty
+
+				if difficulty < 45:
+					difficulty = 45
+
+				if difficulty2 < 45:
+					difficulty2 = 45
 
 			new_diff = float(difficulty2)
 			new_diff = math.ceil(new_diff)
@@ -409,10 +470,9 @@ def worker():
 
 			c.close()
 			
-			print("Difficulty = {}".format(str(new_diff)))
-			print("Blockhash = {}".format(str(new_hash)))
-			
 			app_log.warning("Worker task...")
+			app_log.warning("Difficulty = {}".format(str(new_diff)))
+			app_log.warning("Blockhash = {}".format(str(new_hash)))
 		
 		except Exception as e:
 			app_log.warning(str(e))
@@ -439,7 +499,7 @@ if not os.path.exists('archive.db'):
 	# create empty archive
 	
 if checkdb():
-	payout(min_payout,pool_fee)
+	payout(min_payout,pool_fee,alt_fee)
 
 diff_percentage = pool_percentage_conf
 
@@ -483,7 +543,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 				if not s_test(miner_address):
 					
 					app_log.warning("Bad Miner Address Detected - Changing to default")
-					miner_address = "92563981cc1e70d160c176edf368ea4bbc1d8d5ba63aceee99ef6ebd"
+					miner_address = alt_add
 					#s1.close()
 				
 				else:
@@ -502,6 +562,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 					wstr = ((block_nonce[-1][8])) # worker number
 					wname = "{}{}".format(bname, wstr) # worker name
 					block_timestamp = '%.2f' % (time.time() - 10) # take 10 seconds for latency from miner to pool
+					#block_timestamp = new_time + 1
 
 					app_log.warning("Mined nonce details: {}".format(block_nonce))
 					app_log.warning("Claimed hash: {}".format(mine_hash))
@@ -515,7 +576,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 					db_block_hash = mine_hash
 					
 					mining_hash = bin_convert_orig(hashlib.sha224((address + nonce + db_block_hash).encode("utf-8")).hexdigest())
-					mining_condition = bin_convert_orig(db_block_hash)[0:diff]			
+					mining_condition = bin_convert_orig(db_block_hash)[0:int(diff)]
 
 					if mining_condition in mining_hash:
 
@@ -645,7 +706,7 @@ if __name__ == "__main__":
 	background_thread.daemon = True
 	background_thread.start()
 	
-	worker_thread = threading.Thread(target=worker)
+	worker_thread = threading.Thread(target=worker, args=(w_time,))
 	worker_thread.daemon = True
 	worker_thread.start()
 	app_log.warning("Starting up background tasks....")

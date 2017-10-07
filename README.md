@@ -50,7 +50,11 @@ A custom version of poolware_explorer is planned but I cannot tell you when I wi
 
 Autopayout runs every hour - this has not been fully tested. The minimum payout can be set in pool.txt
 
-Pool fee can be set as a percentage in pool.txt e.g. for 5% fee just enter 5 in the appropriate line.
+Pool fee can be set as a percentage in pool.txt e.g. for 5% fee just enter 5 in the appropriate line
+
+Also a fee for an alternate address (dev, charity, your friend) can be set in pool.txt (alt_fee)
+
+Alt_add is the alternate address suggested above.
 
 pool.txt
 
@@ -59,6 +63,14 @@ mine_diff= pool share difficulty
 min_payout= minimum payout for autopayout function
 
 pool_fee= pool fee percentage
+
+alt_fee= alternative address fee
+
+alt_add= alternative address to send the alt_fee to
+
+worker_time= how often the pool checks diff and blockhash to be mined in seconds
+
+m_timeout= if a miner does not send a share within this many minutes the hashrate will be reduced / set to zero 
 
 # optihash.py
 
