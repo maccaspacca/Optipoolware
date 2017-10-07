@@ -56,7 +56,7 @@ def hello():
 
 	view.append('<head class="navbar navbar-inverse navbar-fixed-top" role="banner">\n')
 	view.append(' <meta charset="utf-8">')
-	view.append(' <meta http-equiv="refresh" content="120">')
+	#view.append(' <meta http-equiv="refresh" content="120">')
 	view.append('   <meta http-equiv="X-UA-Compatible" content="IE=edge">')
 	view.append('   <meta name="viewport" content="width=device-width, initial-scale=1.0">')
 	view.append('  <link rel="shortcut icon" href="favicon.ico">')
@@ -275,7 +275,7 @@ def hello():
 	view.append('</tr>')
 	view.append('</thead>')
 
-	for row in c.execute("SELECT * FROM transactions WHERE address = ? and openfield = ? ORDER BY timestamp DESC LIMIT 40",(address,)+("pool",)):
+	for row in c.execute("SELECT * FROM transactions WHERE address = ? and openfield = ? ORDER BY timestamp DESC LIMIT 80",(address,)+("pool",)):
 		view.append("<td>{}</td>".format(row[3]))
 		view.append("<td class='text-right'>{}</td>".format(row[4]))
 		view.append("<td class='text-right'>{}</td>".format(row[0]))

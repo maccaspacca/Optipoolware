@@ -149,118 +149,120 @@ def payout(payout_threshold,myfee,othfee):
 	reward_total = "%.8f" % (((100-(myfee+othfee))*super_total)/100)
 	reward_total = float(reward_total)
 	
-	# calculate alt address fee
+	if reward_total > 0:
 	
-	ft = super_total - reward_total
-	try:
-		at = "%.8f" % (ft * (othfee/(myfee+othfee)))
-	except:
-		at = 0
+		# calculate alt address fee
 		
-	# calculate reward per share
-	reward_per_share = reward_total / shares_total
-	
-	# calculate shares threshold for payment
-	
-	shares_threshold = math.floor(payout_threshold/reward_per_share)
-	
-	#get unique addresses
-	addresses = []
-	for row in s.execute("SELECT * FROM shares"):
-		shares_address = row[0]
-
-		if shares_address not in addresses:
-			addresses.append(shares_address)
-	print (addresses)
-	#get unique addresses
-	
-	# prepare payout address list with number of shares and new total shares
-	payadd = []
-	new_sum = 0
-	for x in addresses:
-		s.execute("SELECT sum(shares) FROM shares WHERE address = ? AND paid != 1", (x,))
-		shares_sum = s.fetchone()[0]
-
-		if shares_sum == None:
-			shares_sum = 0
-		if shares_sum > shares_threshold:
-			payadd.append([x,shares_sum])
-			new_sum = new_sum + shares_sum
-	#prepare payout address list with number of shares and new total shares
-
-	# recalculate reward per share now we have removed those below payout threshold
-	reward_per_share = reward_total / new_sum
-	
-	paylist = []
-	for p in payadd:
-		payme =  "%.8f" % (p[1] * reward_per_share)
-		paylist.append([p[0],payme])
-
-	if othfee > 0:
-		paylist.append([alt_add,at])
-	
-	payout_passed = 0
-	for r in paylist:
-		print(r)
-		recipient = r[0]
-		claim = float(r[1])
-				
-		payout_passed = 1
-		openfield = "pool"
-		keep = 0
-		fee = float('%.8f' % float(0.01 + (float(len(openfield)) / 100000) + (keep)))  # 0.01 + openfield fee + keep fee
-		#make payout
-
-		timestamp = '%.2f' % time.time()
-		transaction = (str(timestamp), str(address), str(recipient), '%.8f' % float(claim - fee), str(keep), str(openfield))  # this is signed
-		# print transaction
-
-		h = SHA.new(str(transaction).encode("utf-8"))
-		signer = PKCS1_v1_5.new(key)
-		signature = signer.sign(h)
-		signature_enc = base64.b64encode(signature)
-		print("Encoded Signature: {}".format(signature_enc.decode("utf-8")))
-
-		verifier = PKCS1_v1_5.new(key)
-		if verifier.verify(h, signature) == True:
-			print("The signature is valid, proceeding to save transaction to mempool")
-
-			mempool = sqlite3.connect('mempool.db')
-			mempool.text_factory = str
-			m = mempool.cursor()
-
-			m.execute("INSERT INTO transactions VALUES (?,?,?,?,?,?,?,?)", (str(timestamp), str(address), str(recipient), '%.8f' % float(claim - fee), str(signature_enc.decode("utf-8")), str(public_key_hashed), str(keep), str(openfield)))
-			mempool.commit()  # Save (commit) the changes
-			mempool.close()
-			print("Mempool updated with a received transaction")
-
-		s.execute("UPDATE shares SET paid = 1 WHERE address = ?",(recipient,))
-		shares.commit()
-
-	if payout_passed == 1:
-		s.execute("UPDATE shares SET timestamp = ?", (time.time(),))
-		shares.commit()
-
-	# calculate payouts
-	#payout
-	
-	# archive paid shares
-	s.execute("SELECT * FROM shares WHERE paid = 1")
-	pd = s.fetchall()
-	
-	if pd == None:
-		pass
-	else:
-		archive = sqlite3.connect('archive.db')
-		archive.text_factory = str
-		a = archive.cursor()
+		ft = super_total - reward_total
+		try:
+			at = "%.8f" % (ft * (othfee/(myfee+othfee)))
+		except:
+			at = 0
+			
+		# calculate reward per share
+		reward_per_share = reward_total / shares_total
 		
-		for sh in pd:
-			a.execute("INSERT INTO shares VALUES (?,?,?,?,?,?,?,?)", (sh[0],sh[1],sh[2],sh[3],sh[4],sh[5],sh[6],sh[7]))
+		# calculate shares threshold for payment
+		
+		shares_threshold = math.floor(payout_threshold/reward_per_share)
+		
+		#get unique addresses
+		addresses = []
+		for row in s.execute("SELECT * FROM shares"):
+			shares_address = row[0]
 
-		archive.commit()
-		a.close()
-	# archive paid shares
+			if shares_address not in addresses:
+				addresses.append(shares_address)
+		print (addresses)
+		#get unique addresses
+		
+		# prepare payout address list with number of shares and new total shares
+		payadd = []
+		new_sum = 0
+		for x in addresses:
+			s.execute("SELECT sum(shares) FROM shares WHERE address = ? AND paid != 1", (x,))
+			shares_sum = s.fetchone()[0]
+
+			if shares_sum == None:
+				shares_sum = 0
+			if shares_sum > shares_threshold:
+				payadd.append([x,shares_sum])
+				new_sum = new_sum + shares_sum
+		#prepare payout address list with number of shares and new total shares
+
+		# recalculate reward per share now we have removed those below payout threshold
+		reward_per_share = reward_total / new_sum
+		
+		paylist = []
+		for p in payadd:
+			payme =  "%.8f" % (p[1] * reward_per_share)
+			paylist.append([p[0],payme])
+
+		if othfee > 0:
+			paylist.append([alt_add,at])
+		
+		payout_passed = 0
+		for r in paylist:
+			print(r)
+			recipient = r[0]
+			claim = float(r[1])
+					
+			payout_passed = 1
+			openfield = "pool"
+			keep = 0
+			fee = float('%.8f' % float(0.01 + (float(len(openfield)) / 100000) + (keep)))  # 0.01 + openfield fee + keep fee
+			#make payout
+
+			timestamp = '%.2f' % time.time()
+			transaction = (str(timestamp), str(address), str(recipient), '%.8f' % float(claim - fee), str(keep), str(openfield))  # this is signed
+			# print transaction
+
+			h = SHA.new(str(transaction).encode("utf-8"))
+			signer = PKCS1_v1_5.new(key)
+			signature = signer.sign(h)
+			signature_enc = base64.b64encode(signature)
+			print("Encoded Signature: {}".format(signature_enc.decode("utf-8")))
+
+			verifier = PKCS1_v1_5.new(key)
+			if verifier.verify(h, signature) == True:
+				print("The signature is valid, proceeding to save transaction to mempool")
+
+				mempool = sqlite3.connect('mempool.db')
+				mempool.text_factory = str
+				m = mempool.cursor()
+
+				m.execute("INSERT INTO transactions VALUES (?,?,?,?,?,?,?,?)", (str(timestamp), str(address), str(recipient), '%.8f' % float(claim - fee), str(signature_enc.decode("utf-8")), str(public_key_hashed), str(keep), str(openfield)))
+				mempool.commit()  # Save (commit) the changes
+				mempool.close()
+				print("Mempool updated with a received transaction")
+
+			s.execute("UPDATE shares SET paid = 1 WHERE address = ?",(recipient,))
+			shares.commit()
+
+		if payout_passed == 1:
+			s.execute("UPDATE shares SET timestamp = ?", (time.time(),))
+			shares.commit()
+
+		# calculate payouts
+		#payout
+		
+		# archive paid shares
+		s.execute("SELECT * FROM shares WHERE paid = 1")
+		pd = s.fetchall()
+	
+		if pd == None:
+			pass
+		else:
+			archive = sqlite3.connect('archive.db')
+			archive.text_factory = str
+			a = archive.cursor()
+			
+			for sh in pd:
+				a.execute("INSERT INTO shares VALUES (?,?,?,?,?,?,?,?)", (sh[0],sh[1],sh[2],sh[3],sh[4],sh[5],sh[6],sh[7]))
+
+			archive.commit()
+			a.close()
+		# archive paid shares
 	
 	# clear nonces
 	s.execute("DELETE FROM nonces")
