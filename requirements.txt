@@ -1,0 +1,9 @@
+pillow
+pyqrcode
+pypng
+pyinstaller
+bottle
+pycryptodome
+simple-crypt
+PySocks
+requests
