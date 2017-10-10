@@ -1,9 +1,8 @@
-pillow
-pyqrcode
-pypng
 pyinstaller
 bottle
 pycryptodome
-simple-crypt
+simple-crypt --no-deps
 PySocks
 requests
+connections (from Bismuth)
+picklemagic (from Bismuth)
