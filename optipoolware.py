@@ -523,7 +523,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 			if data == "getwork":  # sends the miner the blockhash and mining diff for shares
 			
 				work_send = []
-				work_send.append((new_hash, mdiff, address, new_diff))
+				work_send.append((new_hash, mdiff, address, mdiff))
 
 				connections.send(self.request, work_send, 10)
 				
@@ -564,7 +564,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 					wstr = ((block_nonce[-1][8])) # worker number
 					wname = "{}{}".format(bname, wstr) # worker name
 					block_timestamp = '%.2f' % (time.time() - 10) # take 10 seconds for latency from miner to pool
-					#block_timestamp = new_time + 1
+
 
 					app_log.warning("Mined nonce details: {}".format(block_nonce))
 					app_log.warning("Claimed hash: {}".format(mine_hash))
@@ -574,11 +574,12 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 						app_log.warning("Bad Nonce Format Detected - Closing Connection")
 						self.close
 					app_log.warning("Processing nonce.....")
-					diff = int(ndiff)
+
+					diff = new_diff
 					db_block_hash = mine_hash
 					
 					mining_hash = bin_convert_orig(hashlib.sha224((address + nonce + db_block_hash).encode("utf-8")).hexdigest())
-					mining_condition = bin_convert_orig(db_block_hash)[0:int(diff)]
+					mining_condition = bin_convert_orig(db_block_hash)[0:diff]
 
 					if mining_condition in mining_hash:
 
