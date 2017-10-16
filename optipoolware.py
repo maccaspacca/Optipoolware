@@ -167,7 +167,14 @@ def payout(payout_threshold,myfee,othfee):
 		#prepare payout address list with number of shares and new total shares
 
 		# recalculate reward per share now we have removed those below payout threshold
-		reward_per_share = reward_total / new_sum
+		try:
+		
+			reward_per_share = reward_total / new_sum
+		
+		except:
+			reward_per_share = 0
+		
+		print(reward_per_share)
 		
 		paylist = []
 		for p in payadd:
