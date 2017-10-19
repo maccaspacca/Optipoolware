@@ -108,7 +108,6 @@ def payout(payout_threshold,myfee,othfee):
 		s.execute("SELECT min(timestamp) FROM shares WHERE paid != 1")
 		block_threshold = float(s.fetchone()[0])
 	except:
-		raise
 		block_threshold = time.time()
 	#get block threshold
 	
@@ -333,6 +332,7 @@ def n_test(testString):
 def paydb():
 
 	while True:
+		app_log.warning("Payout run finished")
 		time.sleep(3601)
 		#time.sleep(60) # test
 		v = float('%.2f' % time.time())
@@ -490,6 +490,8 @@ def worker(s_time):
 
 				if difficulty2 < 70:
 					difficulty2 = 70
+					
+			#app_log.warning("Difficulty: {} {}".format(difficulty, difficulty2))
 
 			new_diff = float(difficulty2)
 			new_diff = math.ceil(new_diff)
@@ -555,10 +557,10 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 			elif data == "block":  # from miner to node
 
 				# sock
-				s1 = socks.socksocket()
-				if tor_conf == 1:
-					s1.setproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", 9050)
-				s1.connect(("127.0.0.1", int(port)))  # connect to local node,
+				#s1 = socks.socksocket()
+				#if tor_conf == 1:
+				#	s1.setproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", 9050)
+				#s1.connect(("127.0.0.1", int(port)))  # connect to local node,
 				# sock
 
 
