@@ -1,5 +1,6 @@
 import sqlite3, time, keys
-from bottle import route, run, static_file
+from flask import Flask
+app = Flask(__name__)
 
 (key, private_key_readable, public_key_readable, public_key_hashed, address) = keys.read() #import keys
 
@@ -20,12 +21,13 @@ except Exception as e:
 
 # load config
 
-@route('/static/<filename>')
-def server_static(filename):
-    return static_file(filename, root='static/')
+#@app.route('/static/<filename>')
+#def server_static(filename):
+    #return static_file(filename, root='static/')
 
-@route('/')
-def hello():
+@app.route('/')
+#def hello():
+def main():
 
 	conn = sqlite3.connect('static/ledger.db')
 	conn.text_factory = str
@@ -56,7 +58,6 @@ def hello():
 
 	view.append('<head class="navbar navbar-inverse navbar-fixed-top" role="banner">\n')
 	view.append(' <meta charset="utf-8">')
-	#view.append(' <meta http-equiv="refresh" content="120">')
 	view.append('   <meta http-equiv="X-UA-Compatible" content="IE=edge">')
 	view.append('   <meta name="viewport" content="width=device-width, initial-scale=1.0">')
 	view.append('  <link rel="shortcut icon" href="favicon.ico">')
@@ -295,4 +296,5 @@ def hello():
 
 	return ''.join(view)
 
-run(host='0.0.0.0', port=9080, debug=True)
+if __name__ == "__main__":
+	app.run(host='0.0.0.0', port=9080, debug=True)
