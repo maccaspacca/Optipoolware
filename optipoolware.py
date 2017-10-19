@@ -576,7 +576,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 					app_log.warning("Received a solution from miner {} ({})".format(peer_ip,miner_address))
 
 					block_nonce = connections.receive(self.request, 10)
-					#block_timestamp = (block_nonce[-1][0])
+					block_timestamp = (block_nonce[-1][0])
 					nonce = (block_nonce[-1][1])
 					mine_hash = ((block_nonce[-1][2])) # block hash claimed
 					ndiff = ((block_nonce[-1][3])) # network diff when mined
@@ -586,9 +586,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 					wnum = ((block_nonce[-1][7])) # workers
 					wstr = ((block_nonce[-1][8])) # worker number
 					wname = "{}{}".format(bname, wstr) # worker name
-					block_timestamp = '%.2f' % (time.time() - 10) # take 10 seconds for latency from miner to pool
-
-
+					
 					app_log.warning("Mined nonce details: {}".format(block_nonce))
 					app_log.warning("Claimed hash: {}".format(mine_hash))
 					app_log.warning("Claimed diff: {}".format(sdiffs))
