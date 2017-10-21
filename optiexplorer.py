@@ -31,7 +31,7 @@ except Exception as e:
 # def hello():
 def main():
 
-    conn = sqlite3.connect('ledger.db')
+    conn = sqlite3.connect('static/ledger.db')
     conn.text_factory = str
     c = conn.cursor()
 
