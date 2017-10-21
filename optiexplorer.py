@@ -1,5 +1,4 @@
-import sqlite3
-import time, keys
+import sqlite3, time, keys
 from flask import Flask, render_template
 app = Flask(__name__)
 
@@ -140,8 +139,8 @@ def main():
         reward_list.append(float(row[9]))
 
     if data_block == [] and data_reward == []:
-    	data_block.append(0)
-    	data_reward.append(0)
+        data_block.append(0)
+        data_reward.append(0)
 
     reward_total = sum(reward_list)
 
@@ -156,34 +155,32 @@ def main():
     data_tHash.append(format('%.2f' % (total_hash / 1000)))
     data_twcount.append(worker_count)
 
-
-    #TODO
     # payout view
-    # if reward_total > 0:
+    data_pendingaddress = []
+    data_pendingreward = []
+    if reward_total > 0:
 
-    #     for x, y in zip(addresses, output_shares):
+        for x, y in zip(addresses, output_shares):
 
-    #         try:
-    #             claim = y * reward_per_share
-    #         except:
-    #             claim = 0
+            try:
+                claim = y * reward_per_share
+            except:
+                claim = 0
 
-    #         view.append("<td>{}</td>".format(x))
-    #         view.append("<td>{}</td>".format('%.8f' % (claim)))
-    #         view.append("<tr>")
-
+            data_pendingaddress.append(x)
+            data_pendingreward.append(format('%.8f' % (claim)))
 
     data_paddress = []
     data_bismuthreward = []
     data_blockheight = []
     data_ptime = []
 
-    for row in c.execute("SELECT * FROM transactions WHERE address = ? and openfield = ? ORDER BY timestamp DESC LIMIT 80",(address,)+("pool",)):
-    	data_paddress.append(row[3])
-    	data_bismuthreward.append(row[4])
-    	data_blockheight.append(row[0])
-    	data_ptime.append(format(time.strftime("%Y/%m/%d,%H:%M:%S", time.gmtime(float(row[1])))))
-
+    for row in c.execute("SELECT * FROM transactions WHERE address = ? and openfield = ? ORDER BY timestamp DESC LIMIT 80", (address,) + ("pool",)):
+        data_paddress.append(row[3])
+        data_bismuthreward.append(row[4])
+        data_blockheight.append(row[0])
+        data_ptime.append(format(time.strftime(
+            "%Y/%m/%d,%H:%M:%S", time.gmtime(float(row[1])))))
 
     conn.close()
     shares.close()
@@ -192,8 +189,12 @@ def main():
     return render_template("index.html",
                            recentminers=zip(
                                data_addres, data_shares, data_mrate, data_mname, data_wcount),
-                           bpstats=zip(data_block, data_reward, data_tShares, data_rewardps, data_tReward, data_tHash, data_twcount),
-                           payouts=zip(data_addres, data_bismuthreward, data_blockheight, data_ptime)
+                           bpstats=zip(data_block, data_reward, data_tShares,
+                                       data_rewardps, data_tReward, data_tHash, data_twcount),
+                           payouts=zip(data_addres, data_bismuthreward,
+                                       data_blockheight, data_ptime),
+                           payoutsfees=zip(data_pendingaddress,
+                                           data_pendingreward)
                            )
 
 

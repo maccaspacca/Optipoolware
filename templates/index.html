@@ -7,7 +7,7 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
 
     <div class="container"> 
-        <a class="navbar-brand" href="#">pool.bismuth.online <span id="currency"></span></a>
+        <a class="navbar-brand" href="#"><img src="http://bismuth.cz/wp-content/uploads/2017/03/b3.png" width="50" height="50"><span id="currency"></span></a>
     </div>
 </head>
 <body>
@@ -17,8 +17,13 @@
             <div class="panel-heading">   
                     <h4>Pool Configuration</h4>
             </div>
+            <div>
             Welcome to the optipoolware public Bismuth pool
             <br>Config details in your miner.txt:
+            <br>mining_ip=78.28.250.81
+            <br>miner_address=your mining address
+            <br>Download miner:https://github.com/maccaspacca/Optipoolware
+            </div>
         </section>
     <!-- </div>
 
@@ -100,9 +105,8 @@
             </section>
         </div>
 
-        <!-- TODO -->
 
-        <!-- <div class="container">
+        <div class="container">
             <section class="panel panel-default clearfix">
                 <div class="panel-heading">
                     <h4>Pending Payouts (before fees)</h4>
@@ -115,16 +119,18 @@
                                 <th>Bismuth Reward</th>
                             </tr>
                         </thead>
+                        {% for payout in payoutsfees %}
                         <tr>
-                            <td>add</td>
-                            <td>rw</td>
+                            <td>{{payout[0]}}</td>
+                            <td>{{payout[1]}}</td>
                         </tr>
+                        {% endfor %}
                     </table>
                     
                 </div>
                 
             </section>
-        </div> -->
+        </div>
 
         <div class="container">
             <section class="panel panel-default clearfix">
