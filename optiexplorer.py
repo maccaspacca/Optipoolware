@@ -95,7 +95,7 @@ def main():
             t1 = time.time()
             t2 = float(names_last[2])
             t3 = (t1 - t2) / 60
-            if t3 < 50000000:
+            if t3 < m_timeout:
                 nrate.append(int(names_last[4]))
                 ncount.append(int(names_last[6]))
             else:
@@ -107,7 +107,7 @@ def main():
         total_hash = total_hash + mrate
         worker_count = worker_count + wcount
 
-        if t3 == t3:
+        if t3 < 30:
 
             data_addres.append(x)
             data_shares.append(shares_sum)
@@ -134,10 +134,10 @@ def main():
     data_tHash = []
     data_twcount = []
 
-    # for row in c.execute("SELECT * FROM transactions WHERE address = ? AND CAST(timestamp AS INTEGER) >= ? AND reward != 0", (address,) + (block_threshold,)):
-    #     data_block.append(row[0])
-    #     data_reward.append(row[9])
-    #     reward_list.append(float(row[9]))
+    for row in c.execute("SELECT * FROM transactions WHERE address = ? AND CAST(timestamp AS INTEGER) >= ? AND reward != 0", (address,) + (block_threshold,)):
+        data_block.append(row[0])
+        data_reward.append(row[9])
+        reward_list.append(float(row[9]))
 
     reward_total = sum(reward_list)
 
