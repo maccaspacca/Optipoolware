@@ -139,6 +139,10 @@ def main():
         data_reward.append(row[9])
         reward_list.append(float(row[9]))
 
+    if data_block == [] and data_reward == []:
+    	data_block.append(0)
+    	data_reward.append(0)
+
     reward_total = sum(reward_list)
 
     try:
