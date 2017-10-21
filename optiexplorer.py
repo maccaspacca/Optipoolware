@@ -1,4 +1,4 @@
-import sqlite3,
+import sqlite3
 import time, keys
 from flask import Flask, render_template
 app = Flask(__name__)
