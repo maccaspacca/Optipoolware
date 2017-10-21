@@ -154,7 +154,7 @@ def main():
     data_rewardps.append(reward_per_share)
     data_tReward.append(reward_total)
     data_tHash.append(format('%.2f' % (total_hash / 1000)))
-    data_twcount.append(str(wcount))
+    data_twcount.append(worker_count)
 
 
     #TODO
