@@ -1,6 +1,7 @@
-# optihash.py v 0.23 to be used with Python3.5
+# optihash.py v 0.23SD to be used with Python3.5
 # Optimized CPU-miner for Optipoolware based pool mining only
 # Copyright Hclivess, Primedigger, Maccaspacca 2017
+# Tweaked by SylvainDeaure
 # .
 
 import time, socks, connections, sys, os, math
@@ -29,6 +30,9 @@ for line in lines:
 # load config
 
 bin_format_dict = dict((x, format(ord(x), '8b').replace(' ', '0')) for x in '0123456789abcdef')
+
+# This is how we will *always* sample a backyard.
+try_arr = [('%0x' % getrandbits(32)) for i in range(nonce_time*5000)]
 
 def bin_convert(string):
 	return ''.join(bin_format_dict[x] for x in string)
@@ -63,22 +67,19 @@ def miner(q, pool_address, db_block_hash, diff, mining_condition, mining_conditi
 	my_hash_rate = 0
 	address = pool_address
 	count = 0
-	nt = range(nonce_time*5000)
 	timeout = time.time() + nonce_time
 	#print(pool_address)
 	
 	while time.time() < timeout:
 		try:
-			tries = tries + 1
-	
-			# hashing bit
-			# generate the randomness for each nonce
-
-			try_arr = [('%0x' % getrandbits(128)) for i in nt]
-			
 			t1 = time.time()
+			tries = tries + 1	
+			# generate the "address" of a random backyard that we will sample in this try
+			seed = ('%0x' % getrandbits(128-32))
+			# this part won't change, so concat once only
+			prefix = pool_address+seed
 			# This is where the actual hashing takes place
-			possibles = [nonce for nonce in try_arr if mining_condition in (sha224((pool_address + nonce + db_block_hash).encode("utf-8")).hexdigest())]
+			possibles = [nonce for nonce in try_arr if mining_condition in (sha224((prefix + nonce + db_block_hash).encode("utf-8")).hexdigest())]
 			#hashrate calculation
 			try:
 				t2 = time.time()
@@ -90,6 +91,8 @@ def miner(q, pool_address, db_block_hash, diff, mining_condition, mining_conditi
 			if possibles:
 				#print(possibles)
 				for nonce in possibles:
+					# add the seed back to get a full 128 bits nonce
+					nonce = seed + nonce
 					mining_hash = sha224((pool_address + nonce + db_block_hash).encode("utf-8")).hexdigest()
 					if mining_condition_bin in bin_convert_orig(mining_hash):
 						# recheck
