@@ -4,5 +4,3 @@ pycryptodome
 simple-crypt --no-deps
 PySocks
 requests
-connections (from Bismuth)
-picklemagic (from Bismuth)

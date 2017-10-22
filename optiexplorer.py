@@ -1,3 +1,8 @@
+# optiexplorer.py v 0.30 to be used with Python3.5 or better
+# Copyright Hclivess, Maccaspacca, vv181 2017
+# for license see LICENSE file
+# .
+
 import sqlite3, time, keys
 from flask import Flask, render_template
 app = Flask(__name__)

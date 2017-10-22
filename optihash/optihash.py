@@ -1,13 +1,13 @@
-# optihash.py v 0.23SD to be used with Python3.5
+# optihash.py v 0.30 to be used with Python3.5 or better
 # Optimized CPU-miner for Optipoolware based pool mining only
-# Copyright Hclivess, Primedigger, Maccaspacca 2017
-# Tweaked by SylvainDeaure
+# Copyright Hclivess, Primedigger, Maccaspacca, SylvainDeaure 2017
 # .
 
 import time, socks, connections, sys, os, math
 from multiprocessing import Process, freeze_support, Queue
 from random import getrandbits
 from hashlib import sha224
+from functools import lru_cache as cache
 
 # load config
 lines = [line.rstrip('\n') for line in open('miner.txt')]
@@ -26,13 +26,20 @@ for line in lines:
 		nonce_time = int(line.split('=')[1])
 	if "miner_name=" in line:
 		mname = line.split('=')[1]
+	if "hashcount=" in line:
+		hashcount = int(line.split('=')[1])
 
 # load config
 
 bin_format_dict = dict((x, format(ord(x), '8b').replace(' ', '0')) for x in '0123456789abcdef')
 
-# This is how we will *always* sample a backyard.
-try_arr = [('%0x' % getrandbits(32)) for i in range(nonce_time*5000)]
+@cache(maxsize=None)
+def getarr():
+	# This is how we will *always* sample a backyard.
+	do_arr = [('%0x' % getrandbits(32)) for i in range(nonce_time*hashcount)]
+	return do_arr
+
+try_arr = getarr()
 
 def bin_convert(string):
 	return ''.join(bin_format_dict[x] for x in string)
@@ -83,7 +90,7 @@ def miner(q, pool_address, db_block_hash, diff, mining_condition, mining_conditi
 			#hashrate calculation
 			try:
 				t2 = time.time()
-				h1 = int(((nonce_time*5000) / (t2 - t1))/1000)
+				h1 = int(((nonce_time*hashcount) / (t2 - t1))/1000)
 			except Exception as e:
 				h1 = 1
 			#hashit bit
@@ -93,23 +100,18 @@ def miner(q, pool_address, db_block_hash, diff, mining_condition, mining_conditi
 				for nonce in possibles:
 					# add the seed back to get a full 128 bits nonce
 					nonce = seed + nonce
-					mining_hash = sha224((pool_address + nonce + db_block_hash).encode("utf-8")).hexdigest()
-					if mining_condition_bin in bin_convert_orig(mining_hash):
-						# recheck
-						mining_hash_check = sha224((address + nonce + db_block_hash).encode("utf-8")).hexdigest()
-						if mining_hash_check != mining_hash or mining_condition_bin not in bin_convert_orig(mining_hash_check):
-							print("FOUND solution, but hash doesn't match:", mining_hash_check, 'vs.', mining_hash)
-							break
-						else:
-							print("Thread {} solved work in {} cycles - YAY!".format(q, tries))
+					xdiffx = diffme(str(address[:56]),str(nonce),db_block_hash)
+					
+					if xdiffx < diff:
+						pass
+					else:
+						print("Thread {} solved work in {} cycles - YAY!".format(q, tries))
 						
 						wname = "{}{}".format(mname, str(q))
 						print("{} running at {} kh/s".format(wname,str(h1)))
 						block_send = []
 						del block_send[:]  # empty
-						
-						xdiffx = diffme(str(address[:56]),str(nonce),db_block_hash)
-													
+												
 						block_timestamp = '%.2f' % time.time()
 						block_send.append((block_timestamp, nonce, db_block_hash, netdiff, xdiffx, dh, mname, thr, str(q)))
 						print("Sending solution: {}".format(block_send))

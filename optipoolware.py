@@ -1,3 +1,9 @@
+# optipoolware.py v 0.3 to be used with Python3.5
+# Bismuth pool mining software
+# Copyright Hclivess, Maccaspacca 2017
+# for license see LICENSE file
+# .
+
 import socketserver, connections, time, options, log, sqlite3, socks, hashlib, random, re, keys, base64, sys, os, math
 from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA
