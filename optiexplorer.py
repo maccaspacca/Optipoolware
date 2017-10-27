@@ -1,7 +1,11 @@
-# optiexplorer.py v 0.30 to be used with Python3.5 or better
+# optiexplorer.py v 0.31 to be used with Python3.5 or better
 # Copyright Hclivess, Maccaspacca, vv181 2017
 # for license see LICENSE file
 # .
+
+from tornado.wsgi import WSGIContainer
+from tornado.httpserver import HTTPServer
+from tornado.ioloop import IOLoop
 
 import sqlite3, time, keys
 from flask import Flask, render_template
@@ -204,4 +208,7 @@ def main():
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=9080, debug=True)
+    #app.run(host='0.0.0.0', port=9080, debug=True)
+	http_server = HTTPServer(WSGIContainer(app))
+	http_server.listen(9080)
+	IOLoop.instance().start()

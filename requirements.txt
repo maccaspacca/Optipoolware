@@ -4,3 +4,4 @@ pycryptodome
 simple-crypt --no-deps
 PySocks
 requests
+tornado

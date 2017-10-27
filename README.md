@@ -43,7 +43,7 @@ m_timeout= if a miner does not send a share within this many minutes the hashrat
 
 # optiexplorer.py
 
-This is a reference pool web interface that displays stats and block information for miners. It uses Flask as a microframework
+This is a reference pool web interface that displays stats and block information for miners. It uses Flask run over tornado as a microframework
 
 # optihash.py
 
