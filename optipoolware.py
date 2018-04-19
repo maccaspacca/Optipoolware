@@ -19,14 +19,13 @@ ledger_path_conf = config.ledger_path_conf
 tor_conf = config.tor_conf
 debug_level_conf = config.debug_level_conf
 version = config.version_conf
-terminal_output = config.terminal_output
 
 # print(version)
 
 # load config
 
 (key, private_key_readable, public_key_readable, public_key_hashed, address) = keys.read() #import keys
-app_log = log.log("pool.log",debug_level_conf, terminal_output)
+app_log = log.log("pool.log",debug_level_conf)
 print("Pool Address: {}".format(address))
 
 # load config
