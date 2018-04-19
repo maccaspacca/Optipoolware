@@ -19,13 +19,14 @@ ledger_path_conf = config.ledger_path_conf
 tor_conf = config.tor_conf
 debug_level_conf = config.debug_level_conf
 version = config.version_conf
+terminal_output = config.terminal_output
 
 # print(version)
 
 # load config
 
 (key, private_key_readable, public_key_readable, public_key_hashed, address) = keys.read() #import keys
-app_log = log.log("pool.log",debug_level_conf)
+app_log = log.log("pool.log",debug_level_conf, terminal_output)
 print("Pool Address: {}".format(address))
 
 # load config
@@ -378,7 +379,7 @@ def worker(s_time):
 
 			new_hash = blocklast[7]
 			new_time = blocklast[1]
-			new_diff = math.ceil(diff[1])
+			new_diff = math.floor(diff[1])
 
 			app_log.warning("Difficulty = {}".format(str(new_diff)))
 			app_log.warning("Blockhash = {}".format(str(new_hash)))
