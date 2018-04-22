@@ -378,7 +378,7 @@ def worker(s_time):
 
 			new_hash = blocklast[7]
 			new_time = blocklast[1]
-			new_diff = math.ceil(diff[1])
+			new_diff = math.floor(diff[1])
 
 			app_log.warning("Difficulty = {}".format(str(new_diff)))
 			app_log.warning("Blockhash = {}".format(str(new_hash)))
