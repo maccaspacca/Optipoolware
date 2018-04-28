@@ -1,10 +1,10 @@
-# optipoolware.py v 0.31 to be used with Python3.5
+# optipoolware.py v 0.32 to be used with Python3.5
 # Bismuth pool mining software
-# Copyright Hclivess, Maccaspacca 2017
+# Copyright Hclivess, Maccaspacca 2017, 2018
 # for license see LICENSE file
 # .
 
-import socketserver, connections, time, options, log, sqlite3, socks, hashlib, random, re, keys, base64, sys, os, math
+import socketserver, connections, time, options, log, sqlite3, socks, hashlib, random, re, essentials, base64, sys, os, math
 from Crypto.Signature import PKCS1_v1_5
 from Crypto.Hash import SHA
 from Crypto import Random
@@ -24,7 +24,8 @@ version = config.version_conf
 
 # load config
 
-(key, private_key_readable, public_key_readable, public_key_hashed, address) = keys.read() #import keys
+key, public_key_readable, private_key_readable, _, _, public_key_hashed, address = essentials.keys_load ("privkey.der", "pubkey.der")
+
 app_log = log.log("pool.log",debug_level_conf)
 print("Pool Address: {}".format(address))
 

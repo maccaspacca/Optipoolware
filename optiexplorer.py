@@ -1,17 +1,18 @@
-# optiexplorer.py v 0.31 to be used with Python3.5 or better
+# optiexplorer.py v 0.32 to be used with Python3.5 or better
 # Copyright Hclivess, Maccaspacca, vv181 2017
+# Copyright Maccaspacca 2018
 # for license see LICENSE file
-# .
+# ..
 
 from tornado.wsgi import WSGIContainer
 from tornado.httpserver import HTTPServer
 from tornado.ioloop import IOLoop
 
-import sqlite3, time, keys
+import sqlite3, time, essentials
 from flask import Flask, render_template
 app = Flask(__name__)
 
-(key, private_key_readable, public_key_readable, public_key_hashed, address) = keys.read() #import keys
+key, public_key_readable, private_key_readable, _, _, public_key_hashed, address = essentials.keys_load ("privkey.der", "pubkey.der")
 
 # load config
 

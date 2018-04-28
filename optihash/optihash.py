@@ -52,7 +52,7 @@ def diffme(pool_address, nonce, db_block_hash):
 	diff = 60
 	# will return 0 for diff < 60
 	diff_result = 0
-	mining_hash = bin_convert(hashlib.sha224((pool_address + nonce + db_block_hash).encode("utf-8")).hexdigest())
+	mining_hash = bin_convert(sha224((pool_address + nonce + db_block_hash).encode("utf-8")).hexdigest())
 	mining_condition = bin_convert(db_block_hash)
 	while mining_condition[:diff] in mining_hash:
 		diff_result = diff
