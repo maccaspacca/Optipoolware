@@ -159,7 +159,7 @@ def runit():
 			connected = 1
 	
 			mining_condition_bin = bin_convert_orig(db_block_hash)[0:diff]
-			diff_hex = math.ceil((diff / 8) - 1)
+			diff_hex = math.floor((diff / 8) - 1)
 			mining_condition = db_block_hash[0:diff_hex]
 	
 			instances = range(int(mining_threads_conf))
