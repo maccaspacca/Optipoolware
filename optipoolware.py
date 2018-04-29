@@ -1,4 +1,4 @@
-# optipoolware.py v 0.34 to be used with Python3.5
+# optipoolware.py v 0.35 to be used with Python3.5
 # Bismuth pool mining software
 # Copyright Hclivess, Maccaspacca 2017, 2018
 # for license see LICENSE file
@@ -22,6 +22,10 @@ version = config.version_conf
 
 if version == "testnet":
 	port = "2829"
+	m_peer_file = "peers_test.txt"
+else:
+	m_peer_file = "peers.txt"
+print("Peers file: {}".format(m_peer_file))
 
 # print(version)
 
@@ -562,7 +566,8 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 
 						global peer_dict
 						peer_dict = {}
-						with open("peers.txt") as f:
+						
+						with open(m_peer_file) as f:
 							for line in f:
 								line = re.sub("[\)\(\:\\n\'\s]", "", line)
 								peer_dict[line.split(",")[0]] = line.split(",")[1]
