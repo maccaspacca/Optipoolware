@@ -1,4 +1,4 @@
-# optipoolware.py v 0.33 to be used with Python3.5
+# optipoolware.py v 0.34 to be used with Python3.5
 # Bismuth pool mining software
 # Copyright Hclivess, Maccaspacca 2017, 2018
 # for license see LICENSE file
@@ -382,7 +382,7 @@ def worker(s_time):
 
 			new_hash = blocklast[7]
 			new_time = blocklast[1]
-			new_diff = math.floor(diff[1])
+			new_diff = math.floor(diff[0])
 
 			app_log.warning("Difficulty = {}".format(str(new_diff)))
 			app_log.warning("Blockhash = {}".format(str(new_hash)))
