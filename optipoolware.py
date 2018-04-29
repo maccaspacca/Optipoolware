@@ -1,4 +1,4 @@
-# optipoolware.py v 0.32 to be used with Python3.5
+# optipoolware.py v 0.33 to be used with Python3.5
 # Bismuth pool mining software
 # Copyright Hclivess, Maccaspacca 2017, 2018
 # for license see LICENSE file
@@ -19,6 +19,9 @@ ledger_path_conf = config.ledger_path_conf
 tor_conf = config.tor_conf
 debug_level_conf = config.debug_level_conf
 version = config.version_conf
+
+if version == "testnet":
+	port = "2829"
 
 # print(version)
 
