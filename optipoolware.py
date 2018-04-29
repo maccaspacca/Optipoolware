@@ -1,4 +1,4 @@
-# optipoolware.py v 0.35 to be used with Python3.5
+# optipoolware.py v 0.36 to be used with Python3.5
 # Bismuth pool mining software
 # Copyright Hclivess, Maccaspacca 2017, 2018
 # for license see LICENSE file
@@ -10,6 +10,7 @@ from Crypto.Hash import SHA
 from Crypto import Random
 import threading
 import statistics
+import mempool as mp
 
 config = options.Get()
 config.read()
@@ -373,7 +374,7 @@ def worker(s_time):
 	while True:
 	
 		time.sleep(s_time)
-		doclean +=1
+		#doclean +=1
 	
 		try:
 
@@ -390,30 +391,6 @@ def worker(s_time):
 
 			app_log.warning("Difficulty = {}".format(str(new_diff)))
 			app_log.warning("Blockhash = {}".format(str(new_hash)))
-		
-			# clean mempool
-			if doclean == (3600/s_time):
-				app_log.warning("Begin mempool clean...")
-				mempool = sqlite3.connect("mempool.db")
-				mempool.text_factory = str
-				m = mempool.cursor()
-				m.execute("SELECT * FROM transactions ORDER BY timestamp;")
-				result = m.fetchall()  # select all txs from mempool
-				
-				for r in result:
-					ts = r[4]
-					c.execute("SELECT block_height FROM transactions WHERE signature = ?;",(ts,))
-					try:
-						nok = c.fetchall()[0]
-						m.execute("DELETE FROM transactions WHERE signature = ?;",(ts,))
-					except:
-						pass
-				mempool.commit()
-				m.execute("VACUUM")
-				mempool.close()
-				doclean = 0
-				app_log.warning("End mempool clean...")
-			# clean mempool
 
 		except Exception as e:
 			app_log.warning(str(e))
@@ -521,12 +498,17 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 						app_log.warning("Difficulty requirement satisfied for mining")
 						app_log.warning("Sending block to node {}".format(peer_ip))
 
-						mempool = sqlite3.connect("mempool.db")
-						mempool.text_factory = str
-						m = mempool.cursor()
-						execute(m, ("SELECT * FROM transactions ORDER BY timestamp;"))
-						result = m.fetchall()  # select all txs from mempool
-						mempool.close()
+						try:
+							result = mp.MEMPOOL.fetchall()
+						except:
+							result = []
+						
+						#mempool = sqlite3.connect("mempool.db")
+						#mempool.text_factory = str
+						#m = mempool.cursor()
+						#execute(m, ("SELECT * FROM transactions ORDER BY timestamp;"))
+						#result = m.fetchall()  # select all txs from mempool
+						#mempool.close()
 
 						# include data
 						block_send = []
