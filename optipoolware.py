@@ -1,4 +1,4 @@
-# optipoolware.py v 0.36 to be used with Python3.5
+# optipoolware.py v 0.37 to be used with Python3.5
 # Bismuth pool mining software
 # Copyright Hclivess, Maccaspacca 2017, 2018
 # for license see LICENSE file
@@ -228,7 +228,7 @@ def payout(payout_threshold,myfee,othfee):
 				print("The signature is valid, proceeding to send transaction")
 				txid = signature_enc[:56]
 				mytxid = txid.decode("utf-8")
-				tx_submit = (str(timestamp), str(address), str(recipient), '%.8f' % float(claim - fee), str(signature_enc.decode("utf-8")), str(public_key_hashed), str(keep), str(openfield)) #float kept for compatibility
+				tx_submit = (str(timestamp), str(address), str(recipient), '%.8f' % float(claim - fee), str(signature_enc.decode("utf-8")), str(public_key_hashed.decode("utf-8")), str(keep), str(openfield)) #float kept for compatibility
 
 				t = socks.socksocket()
 				t.connect((node_ip_conf, int(port)))  # connect to local node
