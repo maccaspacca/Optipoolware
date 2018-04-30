@@ -211,7 +211,7 @@ def payout(payout_threshold,myfee,othfee):
 			keep = 0
 			fee = float('%.8f' % float(0.01 + (float(len(openfield)) / 100000) + (keep)))  # 0.01 + openfield fee + keep fee
 			#make payout
-
+			
 			timestamp = '%.2f' % time.time()
 			transaction = (str(timestamp), str(address), str(recipient), '%.8f' % float(claim - fee), str(keep), str(openfield))  # this is signed
 			# print transaction
@@ -221,19 +221,28 @@ def payout(payout_threshold,myfee,othfee):
 			signature = signer.sign(h)
 			signature_enc = base64.b64encode(signature)
 			print("Encoded Signature: {}".format(signature_enc.decode("utf-8")))
-
+			
+			
 			verifier = PKCS1_v1_5.new(key)
 			if verifier.verify(h, signature) == True:
-				print("The signature is valid, proceeding to save transaction to mempool")
+				print("The signature is valid, proceeding to send transaction")
+				txid = signature_enc[:56]
+				mytxid = txid.decode("utf-8")
+				tx_submit = (str(timestamp), str(address), str(recipient), '%.8f' % float(claim - fee), str(signature_enc.decode("utf-8")), str(public_key_hashed), str(keep), str(openfield)) #float kept for compatibility
 
-				mempool = sqlite3.connect('mempool.db')
-				mempool.text_factory = str
-				m = mempool.cursor()
-
-				m.execute("INSERT INTO transactions VALUES (?,?,?,?,?,?,?,?)", (str(timestamp), str(address), str(recipient), '%.8f' % float(claim - fee), str(signature_enc.decode("utf-8")), str(public_key_hashed), str(keep), str(openfield)))
-				mempool.commit()  # Save (commit) the changes
-				mempool.close()
-				print("Mempool updated with a received transaction")
+				t = socks.socksocket()
+				t.connect((node_ip_conf, int(port)))  # connect to local node
+											
+				connections.send(t, "mpinsert", 10)
+				connections.send(t, [tx_submit], 10)
+				reply = connections.receive(t, 10)
+			else:
+				print("Invalid signature")
+				reply = "Invalid signature"
+				
+				print("Transaction sent with txid: {}".format(mytxid))
+				
+			t.close()
 
 			s.execute("UPDATE shares SET paid = 1 WHERE address = ?",(recipient,))
 			shares.commit()
