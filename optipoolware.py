@@ -1,4 +1,4 @@
-# optipoolware.py v 0.37 to be used with Python3.5
+# optipoolware.py v 0.38 to be used with Python3.5
 # Bismuth pool mining software
 # Copyright Hclivess, Maccaspacca 2017, 2018
 # for license see LICENSE file
@@ -547,7 +547,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 						if signer.verify(h, signature) == True:
 							app_log.warning("Signature valid")
 
-							block_send.append((str(block_timestamp), str(address[:56]), str(address[:56]), '%.8f' % float(0), str(signature_enc.decode("utf-8")), str(public_key_hashed), "0", str(nonce)))  # mining reward tx
+							block_send.append((str(block_timestamp), str(address[:56]), str(address[:56]), '%.8f' % float(0), str(signature_enc.decode("utf-8")), str(public_key_hashed.decode("utf-8")), "0", str(nonce)))  # mining reward tx
 							app_log.warning("Block to send: {}".format(block_send))
 							
 							if not any(isinstance(el, list) for el in block_send):  # if it's not a list of lists (only the mining tx and no others)
