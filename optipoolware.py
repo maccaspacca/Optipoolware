@@ -1,4 +1,4 @@
-# optipoolware.py v 0.38 to be used with Python3.5
+# optipoolware.py v 0.39 to be used with Python3.5
 # Bismuth pool mining software
 # Copyright Hclivess, Maccaspacca 2017, 2018
 # for license see LICENSE file
@@ -10,7 +10,6 @@ from Crypto.Hash import SHA
 from Crypto import Random
 import threading
 import statistics
-import mempool as mp
 
 config = options.Get()
 config.read()
@@ -24,9 +23,12 @@ version = config.version_conf
 if version == "testnet":
 	port = "2829"
 	m_peer_file = "peers_test.txt"
+
 else:
 	m_peer_file = "peers.txt"
+
 print("Peers file: {}".format(m_peer_file))
+
 
 # print(version)
 
@@ -81,6 +83,14 @@ except Exception as e:
 	w_time = 10
 	alt_add = "92563981cc1e70d160c176edf368ea4bbc1d8d5ba63aceee99ef6ebd"
 # load config
+
+#m = socks.socksocket()
+#m.connect((node_ip_conf, int(port)))  # connect to local node
+#connections.send(m, "api_mempool", 10)
+#tresult = connections.receive(m, 10)
+#m.close()
+
+#print(tresult)
 
 bin_format_dict = dict((x, format(ord(x), '8b').replace(' ', '0')) for x in '0123456789abcdef')
 
@@ -376,7 +386,7 @@ def worker(s_time):
 	global new_hash
 	global new_time
 	doclean = 0
-
+	
 	n = socks.socksocket()
 	n.connect((node_ip_conf, int(port)))  # connect to local node
 
@@ -384,7 +394,7 @@ def worker(s_time):
 	
 		time.sleep(s_time)
 		#doclean +=1
-	
+		
 		try:
 
 			app_log.warning("Worker task...")
@@ -393,13 +403,14 @@ def worker(s_time):
 
 			connections.send(n, "diffget", 10)
 			diff = connections.receive(n, 10)
-
+			
 			new_hash = blocklast[7]
 			new_time = blocklast[1]
 			new_diff = math.floor(diff[0])
 
 			app_log.warning("Difficulty = {}".format(str(new_diff)))
 			app_log.warning("Blockhash = {}".format(str(new_hash)))
+			print("Worker")
 
 		except Exception as e:
 			app_log.warning(str(e))
@@ -506,18 +517,13 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 
 						app_log.warning("Difficulty requirement satisfied for mining")
 						app_log.warning("Sending block to node {}".format(peer_ip))
-
-						try:
-							result = mp.MEMPOOL.fetchall()
-						except:
-							result = []
 						
-						#mempool = sqlite3.connect("mempool.db")
-						#mempool.text_factory = str
-						#m = mempool.cursor()
-						#execute(m, ("SELECT * FROM transactions ORDER BY timestamp;"))
-						#result = m.fetchall()  # select all txs from mempool
-						#mempool.close()
+						
+						m = socks.socksocket()
+						m.connect((node_ip_conf, int(port)))  # connect to local node
+						connections.send(m, "api_mempool", 10)
+						result = connections.receive(m, 10)
+						m.close()
 
 						# include data
 						block_send = []
