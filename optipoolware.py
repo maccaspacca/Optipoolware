@@ -1,4 +1,4 @@
-# optipoolware.py v 0.39 to be used with Python3.5
+# optipoolware.py v 0.395 to be used with Python3.5
 # Bismuth pool mining software
 # Copyright Hclivess, Maccaspacca 2017, 2018
 # for license see LICENSE file
@@ -448,6 +448,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 		self.allow_reuse_address = True
 
 		peer_ip = self.request.getpeername()[0]
+	
 
 		try:
 			data = connections.receive(self.request, 10)
@@ -516,13 +517,30 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 					if mining_condition in mining_hash:
 
 						app_log.warning("Difficulty requirement satisfied for mining")
-						app_log.warning("Sending block to node {}".format(peer_ip))
+						app_log.warning("Sending block to nodes")
 						
+						cn = options.Get()
+						cn.read()
+						cport = cn.port
+						app_log.warning(cport)
+						cnode_ip_conf = cn.node_ip_conf
+						app_log.warning(cnode_ip_conf)
+						ctor_conf = cn.tor_conf
 						
+						cversion = cn.version_conf
+
+						if cversion == "testnet":
+							cport = "2829"
+							m_peer_file = "peers_test.txt"
+						else:
+							m_peer_file = "peers.txt"
+						
+		
 						m = socks.socksocket()
-						m.connect((node_ip_conf, int(port)))  # connect to local node
+						m.connect((cnode_ip_conf, int(cport)))  # connect to local node
 						connections.send(m, "api_mempool", 10)
 						result = connections.receive(m, 10)
+						app_log.warning("I have got to receive mempool")
 						m.close()
 
 						# include data
@@ -530,13 +548,14 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 						del block_send[:]  # empty
 						removal_signature = []
 						del removal_signature[:]  # empty
-
+						
+						app_log.warning("prepare empty block and clear data")
+						
 						for dbdata in result:
 							transaction = (
 								str(dbdata[0]), str(dbdata[1][:56]), str(dbdata[2][:56]), '%.8f' % float(dbdata[3]),
 								str(dbdata[4]), str(dbdata[5]), str(dbdata[6]),
 								str(dbdata[7]))  # create tuple
-							# print transaction
 							block_send.append(transaction)  # append tuple to list for each run
 							removal_signature.append(str(dbdata[4]))  # for removal after successful mining
 
@@ -560,6 +579,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 								new_list = []
 								new_list.append(block_send)
 								block_send = new_list  # make it a list of lists
+								app_log.warning(block_send)
 
 						global peer_dict
 						peer_dict = {}
@@ -568,6 +588,8 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 							for line in f:
 								line = re.sub("[\)\(\:\\n\'\s]", "", line)
 								peer_dict[line.split(",")[0]] = line.split(",")[1]
+								
+							app_log.warning(peer_dict)
 
 							for k, v in peer_dict.items():
 								peer_ip = k
@@ -579,7 +601,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 								try:
 									s = socks.socksocket()
 									s.settimeout(0.3)
-									if tor_conf == 1:
+									if ctor_conf == 1:
 										s.setproxy(socks.PROXY_TYPE_SOCKS5, "127.0.0.1", 9050)
 									s.connect((peer_ip, int(peer_port)))  # connect to node in peerlist
 									app_log.warning("Connected")
@@ -587,6 +609,7 @@ class MyTCPHandler(socketserver.BaseRequestHandler):
 									app_log.warning("Miner: Proceeding to submit mined block")
 
 									connections.send(s, "block", 10)
+									#connections.send(s, address, 10)
 									connections.send(s, block_send, 10)
 
 									app_log.warning("Miner: Block submitted to {}".format(peer_ip))
