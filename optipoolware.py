@@ -14,7 +14,7 @@ import statistics
 config = options.Get()
 config.read()
 port = config.port
-node_ip_conf = config.node_ip_conf
+node_ip_conf = config.node_ip
 ledger_path_conf = config.ledger_path_conf
 tor_conf = config.tor_conf
 debug_level_conf = config.debug_level_conf
