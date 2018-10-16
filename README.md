@@ -1,3 +1,7 @@
+# THIS REPOSITORY IS NO LONGER MAINTAINED 
+
+Please go to https://github.com/bismuthfoundation/Optipoolware for latest version 
+
 Known issue: Optipoolware will not stop execution with normal ctr-c in windows - use alt-f4 instead
 
 Note: The reference miner software for the pool (optihash.py) is now contained in the folder called optihash
